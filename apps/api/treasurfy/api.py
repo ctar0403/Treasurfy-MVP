@@ -19,6 +19,8 @@ from sqlalchemy.orm import Session
 
 from treasurfy.schemas import (
     CashPositionResponse,
+    DailyBriefRequest,
+    DailyBriefResponse,
     ExpectedCashFlowCreate,
     ExpectedCashFlowResponse,
     ForecastRequest,
@@ -39,6 +41,7 @@ from treasurfy.services.cash_position import (
     MissingFxRateError,
     get_cash_position,
 )
+from treasurfy.services.daily_brief import create_daily_brief
 from treasurfy.services.forecast import (
     CashFlowValidationError,
     ForecastConfigurationError,
@@ -479,4 +482,31 @@ def payment_iso20022(
     except WorkspaceAccessDeniedError as error:
         raise HTTPException(status_code=403, detail="Payment export is not allowed.") from error
     except (PaymentStateError, PaymentValidationError) as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@router.post(
+    "/workspaces/{workspace_id}/daily-briefs",
+    response_model=DailyBriefResponse,
+)
+def generate_daily_brief(
+    workspace_id: str,
+    request: DailyBriefRequest,
+    actor_user_id: str = Depends(get_actor_user_id),
+    session: Session = Depends(get_session),
+) -> DailyBriefResponse:
+    try:
+        return create_daily_brief(
+            session,
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+            as_of_date=request.as_of_date or datetime.now(UTC).date(),
+        )
+    except WorkspaceNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Workspace not found.") from error
+    except WorkspaceAccessDeniedError as error:
+        raise HTTPException(
+            status_code=403, detail="User does not belong to this workspace."
+        ) from error
+    except ForecastConfigurationError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error

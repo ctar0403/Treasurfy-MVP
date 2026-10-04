@@ -410,6 +410,27 @@ class PaymentExport(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class DailyBriefRun(Base):
+    __tablename__ = "daily_brief_runs"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id", "input_fingerprint", name="uq_workspace_daily_brief_input"
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    actor_user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    brief_date: Mapped[date] = mapped_column(Date, nullable=False)
+    input_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
 

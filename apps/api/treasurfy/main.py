@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from uuid import uuid4
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,6 +37,19 @@ def create_app(
         lifespan=lifespan,
     )
     application.state.database = database
+
+    @application.middleware("http")
+    async def add_api_safety_headers(request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Content-Security-Policy"] = "frame-ancestors 'none'"
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Request-ID"] = str(uuid4())
+        return response
+
     application.add_middleware(
         CORSMiddleware,
         allow_origins=list(application_settings.cors_origins),

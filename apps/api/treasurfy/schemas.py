@@ -245,3 +245,56 @@ class PaymentAuditEventResponse(BaseModel):
     actor_name: str
     detail: dict[str, object]
     created_at: str
+
+
+class DailyBriefRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    as_of_date: date | None = None
+
+
+class DailyBriefMetric(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    key: str
+    label: str
+    value: str
+    currency: str | None
+    context: str
+    tone: Literal["neutral", "positive", "warning", "critical"]
+
+
+class DailyBriefHighlight(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    severity: Literal["info", "warning", "critical"]
+    title: str
+    detail: str
+    evidence: list[str]
+
+
+class DailyBriefAction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    priority: Literal["low", "medium", "high", "critical"]
+    title: str
+    detail: str
+    target_type: str
+    target_id: str
+
+
+class DailyBriefResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    daily_brief_run_id: str
+    reused_run: bool
+    as_of_date: date
+    generated_at: str
+    base_currency: str
+    headline: str
+    summary: str
+    metrics: list[DailyBriefMetric]
+    highlights: list[DailyBriefHighlight]
+    actions: list[DailyBriefAction]
+    evidence: list[str]
+    input_fingerprint: str
