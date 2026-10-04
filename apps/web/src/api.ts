@@ -1,5 +1,6 @@
 import type {
   CashPosition,
+  DailyBrief,
   Forecast,
   ImportRun,
   Payment,
@@ -63,6 +64,14 @@ export function runForecast(): Promise<Forecast> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ horizon_days: 90 }),
+  });
+}
+
+export function runDailyBrief(): Promise<DailyBrief> {
+  return request(`/api/workspaces/${DEMO_WORKSPACE_ID}/daily-briefs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
   });
 }
 

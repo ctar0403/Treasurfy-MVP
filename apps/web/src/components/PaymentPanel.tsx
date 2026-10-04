@@ -135,7 +135,7 @@ export function PaymentPanel({
   }
 
   return (
-    <section className="payments-section" aria-labelledby="payments-title">
+    <section id="payments" className="payments-section" aria-labelledby="payments-title">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Controlled execution</p>

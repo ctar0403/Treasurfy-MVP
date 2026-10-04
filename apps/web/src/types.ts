@@ -185,3 +185,42 @@ export type PaymentAuditEvent = {
   detail: Record<string, unknown>;
   created_at: string;
 };
+
+export type DailyBriefMetric = {
+  key: string;
+  label: string;
+  value: string;
+  currency: string | null;
+  context: string;
+  tone: "neutral" | "positive" | "warning" | "critical";
+};
+
+export type DailyBriefHighlight = {
+  severity: "info" | "warning" | "critical";
+  title: string;
+  detail: string;
+  evidence: string[];
+};
+
+export type DailyBriefAction = {
+  priority: "low" | "medium" | "high" | "critical";
+  title: string;
+  detail: string;
+  target_type: string;
+  target_id: string;
+};
+
+export type DailyBrief = {
+  daily_brief_run_id: string;
+  reused_run: boolean;
+  as_of_date: string;
+  generated_at: string;
+  base_currency: string;
+  headline: string;
+  summary: string;
+  metrics: DailyBriefMetric[];
+  highlights: DailyBriefHighlight[];
+  actions: DailyBriefAction[];
+  evidence: string[];
+  input_fingerprint: string;
+};

@@ -9,7 +9,7 @@ type ForecastPanelProps = {
 
 export function ForecastPanel({ forecast }: ForecastPanelProps) {
   return (
-    <section className="forecast-section" aria-labelledby="forecast-title">
+    <section id="forecast" className="forecast-section" aria-labelledby="forecast-title">
       <article className="panel forecast-panel">
         <div className="panel-heading">
           <div>

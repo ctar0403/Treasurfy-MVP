@@ -4,15 +4,18 @@ import {
   getImportHistory,
   getPaymentProfiles,
   getPayments,
+  runDailyBrief,
   runForecast,
   uploadBankCsv,
 } from "./api";
 import { ForecastPanel } from "./components/ForecastPanel";
+import { DailyBriefPanel } from "./components/DailyBriefPanel";
 import { PaymentPanel } from "./components/PaymentPanel";
 import { StatusBadge } from "./components/StatusBadge";
 import { formatMoney, formatTimestamp } from "./format";
 import type {
   CashPosition,
+  DailyBrief,
   Forecast,
   ImportRun,
   Payment,
@@ -31,6 +34,7 @@ function initials(name: string): string {
 export default function App() {
   const [cash, setCash] = useState<CashPosition | null>(null);
   const [forecast, setForecast] = useState<Forecast | null>(null);
+  const [dailyBrief, setDailyBrief] = useState<DailyBrief | null>(null);
   const [imports, setImports] = useState<ImportRun[]>([]);
   const [paymentProfiles, setPaymentProfiles] = useState<PaymentProfile[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -51,11 +55,13 @@ export default function App() {
         getPaymentProfiles(),
         getPayments(),
       ]);
+      const briefResult = await runDailyBrief();
       setCash(cashPosition);
       setImports(importHistory);
       setForecast(forecastResult);
       setPaymentProfiles(profilesResult);
       setPayments(paymentsResult);
+      setDailyBrief(briefResult);
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -68,7 +74,12 @@ export default function App() {
   }, []);
 
   const refreshPayments = useCallback(async () => {
-    setPayments(await getPayments());
+    const [paymentsResult, briefResult] = await Promise.all([
+      getPayments(),
+      runDailyBrief(),
+    ]);
+    setPayments(paymentsResult);
+    setDailyBrief(briefResult);
   }, []);
 
   useEffect(() => {
@@ -113,6 +124,12 @@ export default function App() {
           </span>
           <span>TreasurFy</span>
         </a>
+        <nav className="topbar-nav" aria-label="Dashboard sections">
+          <a href="#brief">Brief</a>
+          <a href="#forecast">Forecast</a>
+          <a href="#payments">Payments</a>
+          <a href="#accounts">Accounts</a>
+        </nav>
         <div className="topbar-actions">
           <span className="environment-pill">
             <span className="pulse-dot" aria-hidden="true" /> Demo workspace
@@ -185,6 +202,8 @@ export default function App() {
                 </span>
               </div>
             )}
+
+            {dailyBrief && <DailyBriefPanel brief={dailyBrief} />}
 
             {forecast && <ForecastPanel forecast={forecast} />}
 
@@ -290,7 +309,7 @@ export default function App() {
               </article>
             </section>
 
-            <section className="panel accounts-panel">
+            <section id="accounts" className="panel accounts-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Account detail</p>

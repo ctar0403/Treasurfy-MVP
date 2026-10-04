@@ -70,12 +70,12 @@ illustrative ISO 20022 `pain.001` file.
 ```text
 apps/api/   FastAPI application and tests
 apps/web/   React and TypeScript treasury dashboard
-infra/      Local and deployment configuration
+compose.yaml   Containerized local deployment
 ```
 
 ## Current implementation
 
-Steps 1 through 5 are implemented across `apps/api` and `apps/web`:
+All six MVP delivery steps are implemented across `apps/api` and `apps/web`:
 
 - FastAPI application and SQLite development database
 - Workspace, membership/role, entity, bank-account, FX-rate, and audit models
@@ -95,6 +95,9 @@ Steps 1 through 5 are implemented across `apps/api` and `apps/web`:
 - Separate payment maker/checker identities and approval enforcement
 - Payment audit history and repeatable illustrative ISO 20022 XML export
 - Responsive payment preparation and approval workspace
+- Evidence-linked daily treasury brief with prioritized actions
+- Immutable brief runs that are reused while their source inputs remain unchanged
+- API safety headers, response request IDs, container health checks, and non-root images
 
 The identity header is only an MVP seam and will be replaced by managed login.
 The demo FX rates are explicit synthetic inputs, not live market data.
@@ -225,5 +228,41 @@ content and SHA-256 digest. The generated `pain.001.001.03` document is an
 illustrative interoperability artifact: it is not certified by a bank and is
 never transmitted.
 
-The next delivery step is the grounded daily treasury brief, final experience
-polish, deployment configuration, and MVP hardening.
+## Daily treasury brief
+
+The brief is calculated from the same cash position, forecast, liquidity rules,
+and payment states shown elsewhere in the dashboard. Every exception links back
+to concrete evidence identifiers. It does not use an LLM to invent or reinterpret
+financial values. A SHA-256 input fingerprint makes repeated generation
+reproducible and invalidates the brief when a source balance, flow, rule, or
+payment state changes.
+
+```text
+POST /api/workspaces/workspace-demo/daily-briefs
+```
+
+The dashboard presents the current cash and forecast metrics, liquidity and data
+quality exceptions, and an action queue ordered by operational priority.
+
+## Run with containers
+
+Docker Compose builds a non-root API container and a static web container with a
+same-origin API proxy. SQLite data is stored in the named `treasurfy-data` volume.
+
+```powershell
+docker compose up --build
+```
+
+Open `http://127.0.0.1:5173`. The API remains available directly at
+`http://127.0.0.1:8000`, including health checks at `/api/health`.
+
+Stop the containers with:
+
+```powershell
+docker compose down
+```
+
+The MVP is now feature-complete for a synthetic-data pilot. Production rollout
+still requires managed authentication, secrets management, database migrations,
+real bank certification/connectivity, monitoring, backups, and an external
+security review.

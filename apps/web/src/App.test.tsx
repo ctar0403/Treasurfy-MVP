@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import type {
   CashPosition,
+  DailyBrief,
   Forecast,
   ImportRun,
   Payment,
@@ -164,6 +165,61 @@ const pendingPayment: Payment = {
   can_export: false,
 };
 
+const dailyBrief: DailyBrief = {
+  daily_brief_run_id: "brief-1",
+  reused_run: false,
+  as_of_date: "2026-10-04",
+  generated_at: "2026-10-04T08:00:00Z",
+  base_currency: "GBP",
+  headline: "1 liquidity risk and 1 payment approval need attention",
+  summary: "Available cash and forecasts are derived from current treasury inputs.",
+  metrics: [
+    {
+      key: "total_cash",
+      label: "Cash available",
+      value: "2191800.00",
+      currency: "GBP",
+      context: "Across 3 entities and 6 accounts",
+      tone: "neutral",
+    },
+    {
+      key: "cash_30_days",
+      label: "30-day forecast",
+      value: "2118200.00",
+      currency: "GBP",
+      context: "Down 73600.00 from today's position",
+      tone: "warning",
+    },
+    {
+      key: "pending_approvals",
+      label: "Pending approvals",
+      value: "1",
+      currency: null,
+      context: "Payments requiring a separate checker",
+      tone: "warning",
+    },
+  ],
+  highlights: [
+    {
+      severity: "critical",
+      title: "Liquidity threshold at Northstar Europe GmbH",
+      detail: "Projected GBP 115200.00 below its configured minimum.",
+      evidence: ["forecast:forecast-1", "entity:entity-eu"],
+    },
+  ],
+  actions: [
+    {
+      priority: "critical",
+      title: "Resolve projected shortfall at Northstar Europe GmbH",
+      detail: "Review dated inflows and outflows.",
+      target_type: "entity",
+      target_id: "entity-eu",
+    },
+  ],
+  evidence: ["cash-position:workspace-demo", "forecast:forecast-1", "payment:payment-demo-cloud"],
+  input_fingerprint: "brief-fingerprint",
+};
+
 function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
     status: 200,
@@ -187,7 +243,8 @@ describe("TreasurFy dashboard", () => {
       .mockResolvedValueOnce(jsonResponse([]))
       .mockResolvedValueOnce(jsonResponse(forecast))
       .mockResolvedValueOnce(jsonResponse([paymentProfile]))
-      .mockResolvedValueOnce(jsonResponse([pendingPayment]));
+      .mockResolvedValueOnce(jsonResponse([pendingPayment]))
+      .mockResolvedValueOnce(jsonResponse(dailyBrief));
 
     render(<App />);
 
@@ -198,6 +255,8 @@ describe("TreasurFy dashboard", () => {
     expect(screen.getAllByText("£2,118,200").length).toBeGreaterThan(0);
     expect(screen.getByText("Liquidity risks")).toBeInTheDocument();
     expect(screen.getByText("Payment workspace")).toBeInTheDocument();
+    expect(screen.getByText(dailyBrief.headline)).toBeInTheDocument();
+    expect(screen.getByText("Today's actions")).toBeInTheDocument();
     expect(screen.getByText("Atlas Cloud Services GmbH")).toBeInTheDocument();
     expect(screen.getByText(/No files imported yet/)).toBeInTheDocument();
   });
@@ -209,12 +268,14 @@ describe("TreasurFy dashboard", () => {
       .mockResolvedValueOnce(jsonResponse(forecast))
       .mockResolvedValueOnce(jsonResponse([paymentProfile]))
       .mockResolvedValueOnce(jsonResponse([pendingPayment]))
+      .mockResolvedValueOnce(jsonResponse(dailyBrief))
       .mockResolvedValueOnce(jsonResponse(importRun))
       .mockResolvedValueOnce(jsonResponse(cashPosition))
       .mockResolvedValueOnce(jsonResponse([importRun]))
       .mockResolvedValueOnce(jsonResponse({ ...forecast, reused_run: true }))
       .mockResolvedValueOnce(jsonResponse([paymentProfile]))
-      .mockResolvedValueOnce(jsonResponse([pendingPayment]));
+      .mockResolvedValueOnce(jsonResponse([pendingPayment]))
+      .mockResolvedValueOnce(jsonResponse({ ...dailyBrief, reused_run: true }));
 
     render(<App />);
     await screen.findAllByText("£2,191,800");
@@ -229,7 +290,7 @@ describe("TreasurFy dashboard", () => {
 
     expect(await screen.findByText("2 accepted · 0 rejected · 0 duplicates skipped"))
       .toBeInTheDocument();
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(11));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(13));
     expect(screen.getByText("balances.csv")).toBeInTheDocument();
   });
 
@@ -247,8 +308,13 @@ describe("TreasurFy dashboard", () => {
       .mockResolvedValueOnce(jsonResponse(forecast))
       .mockResolvedValueOnce(jsonResponse([paymentProfile]))
       .mockResolvedValueOnce(jsonResponse([pendingPayment]))
+      .mockResolvedValueOnce(jsonResponse(dailyBrief))
       .mockResolvedValueOnce(jsonResponse(approvedPayment))
-      .mockResolvedValueOnce(jsonResponse([approvedPayment]));
+      .mockResolvedValueOnce(jsonResponse([approvedPayment]))
+      .mockResolvedValueOnce(jsonResponse({
+        ...dailyBrief,
+        headline: "1 liquidity risk and 0 payment approvals need attention",
+      }));
 
     render(<App />);
     await screen.findByText("Atlas Cloud Services GmbH");
@@ -256,8 +322,8 @@ describe("TreasurFy dashboard", () => {
 
     expect(await screen.findByText("Payment approved by the demo checker.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download XML" })).toBeInTheDocument();
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(7));
-    expect(vi.mocked(fetch).mock.calls[5][1]?.headers).toEqual({
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(9));
+    expect(vi.mocked(fetch).mock.calls[6][1]?.headers).toEqual({
       "X-User-ID": "user-demo-approver",
       "Content-Type": "application/json",
     });
