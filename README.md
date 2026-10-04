@@ -1,49 +1,77 @@
 # TreasurFy MVP
 
-TreasurFy is a treasury workspace for growth-stage companies with multiple
-entities, banks, accounts, and currencies. The first customer-facing MVP is
-designed to answer five questions quickly:
+TreasurFy is a treasury workspace for growth-stage companies that manage
+multiple entities, banks, accounts, and currencies.
+
+The MVP answers five practical questions:
 
 1. How much cash do we have now?
 2. What will our cash position be in 30, 60, and 90 days?
 3. Which entities are cash-rich or cash-poor?
-4. Where are the immediate liquidity risks?
-5. Which payments are waiting to be prepared or approved?
+4. Where are our liquidity risks?
+5. Which payments need preparation or approval?
 
-Its product wedge is faster implementation: bank-data mappings and payment
-rules are represented as reusable, versioned profiles rather than rebuilt for
-every customer.
-
-## January 2027 demonstration
-
-The MVP will demonstrate a seeded multi-entity company with multiple UK and US
-bank accounts. A user can import balances and transactions, inspect consolidated
-cash, run a simple forecast, review liquidity alerts, read a grounded daily
-brief, and prepare/approve/export a payment file.
-
-The MVP will not connect to a production bank or transmit money. A successful
-payment validation means only that the instruction satisfies the selected
-profile. Bank entitlements, credentials, testing, and production activation
-remain external steps.
-
-## Documentation
-
-- [Product scope](docs/PRODUCT_SCOPE.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Build plan](docs/BUILD_PLAN.md)
-- [Customer discovery checklist](docs/DISCOVERY_CHECKLIST.md)
-- [First prototype review](docs/FIRST_PROTOTYPE_REVIEW.md)
-
-## Planned repository shape
+## How it works
 
 ```text
-apps/
-  api/       FastAPI application and domain services
-  web/       React and TypeScript application
-docs/        Product, architecture, and delivery decisions
-infra/       Local and deployment configuration
+Bank/ERP files
+    -> reusable import profiles
+    -> normalized accounts, balances, transactions, and expected cash flows
+    -> cash position, forecast, and liquidity calculations
+    -> dashboard and grounded daily treasury brief
+
+Payment draft
+    -> canonical payment model
+    -> reusable payment profile and deterministic validation
+    -> maker/checker approval
+    -> illustrative ISO 20022 XML export
 ```
 
-Implementation begins only after the Phase 0 product decisions in the build
-plan are accepted. This prevents the first sprint from encoding guesses about
-the initial country, bank, payment rail, ERP, and design partner.
+Bank-specific mapping and payment knowledge is stored in versioned profiles so
+it can be reused for later customers instead of rebuilt during every
+implementation.
+
+The January demonstration will use synthetic or redacted files. It will not
+connect to production banks or transmit money. Payment export does not mean a
+bank has certified or accepted the file.
+
+## MVP scope
+
+- Workspace users with admin, preparer, approver, and viewer roles
+- Legal entities, banks, accounts, currencies, and data freshness
+- File-based balance and transaction imports
+- Consolidated cash position with account/entity drill-down
+- Explainable 30/60/90-day forecast
+- Cash-rich/cash-poor ranking and minimum-cash alerts
+- Payment preparation, validation, approval, audit, and XML export
+- Read-only daily brief generated from calculated facts
+- Reusable onboarding, import, and payment profiles
+
+Not included in the MVP: real bank connectivity, payment transmission, full ERP
+integration, automated reconciliation, ML forecasting, FX trading, debt
+management, or autonomous AI actions.
+
+## Delivery steps
+
+1. Foundation: API, database, workspace isolation, seed data, tests
+2. Onboarding and balance/transaction imports
+3. Cash dashboard and currency conversion
+4. Forecasting and liquidity alerts
+5. Payment preparation, approval, and export
+6. Daily brief, web experience, deployment, and hardening
+
+Each step is delivered as a tested Git commit. The first target customer remains
+a UK/US growth-stage SaaS, fintech, or technology company using GBP, USD, and
+EUR. The first input is a documented CSV format; the first payment output is an
+illustrative ISO 20022 `pain.001` file.
+
+## Repository layout
+
+```text
+apps/api/   FastAPI application and tests
+apps/web/   React and TypeScript application (added after the API contract)
+infra/      Local and deployment configuration
+```
+
+Setup and run commands will be added here with each implemented step so this
+remains the only project document.
