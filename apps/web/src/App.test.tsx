@@ -1,7 +1,13 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
-import type { CashPosition, Forecast, ImportRun } from "./types";
+import type {
+  CashPosition,
+  Forecast,
+  ImportRun,
+  Payment,
+  PaymentProfile,
+} from "./types";
 
 const cashPosition: CashPosition = {
   workspace_id: "workspace-demo",
@@ -120,6 +126,44 @@ const forecast: Forecast = {
   ],
 };
 
+const paymentProfile: PaymentProfile = {
+  id: "payment-profile-pain001-demo",
+  name: "Illustrative ISO 20022 credit transfer",
+  version: "1.0.0",
+  message_type: "pain.001.001.03-demo",
+  allowed_currencies: ["GBP", "USD", "EUR"],
+  maximum_amount: "1000000.00",
+};
+
+const pendingPayment: Payment = {
+  id: "payment-demo-cloud",
+  entity_id: "entity-eu",
+  entity_name: "Northstar Europe GmbH",
+  source_account_id: "account-deutsche-eur",
+  source_account_name: "EU Operating",
+  payment_profile_id: paymentProfile.id,
+  payment_profile_name: paymentProfile.name,
+  profile_version: "1.0.0",
+  beneficiary_name: "Atlas Cloud Services GmbH",
+  beneficiary_account: "DE89370400440532013000",
+  beneficiary_country_code: "DE",
+  amount: "48000.00",
+  currency: "EUR",
+  requested_execution_date: "2026-10-08",
+  reference: "INV-2026-1042",
+  status: "pending_approval",
+  validation_status: "passed",
+  validation_errors: [],
+  created_by_user_id: "user-demo-preparer",
+  created_by_name: "Priya Payment Maker",
+  submitted_by_user_id: "user-demo-preparer",
+  decided_by_user_id: null,
+  created_at: "2026-10-04T08:00:00Z",
+  submitted_at: "2026-10-04T08:00:00Z",
+  decided_at: null,
+  can_export: false,
+};
+
 function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
     status: 200,
@@ -141,7 +185,9 @@ describe("TreasurFy dashboard", () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(jsonResponse(cashPosition))
       .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse(forecast));
+      .mockResolvedValueOnce(jsonResponse(forecast))
+      .mockResolvedValueOnce(jsonResponse([paymentProfile]))
+      .mockResolvedValueOnce(jsonResponse([pendingPayment]));
 
     render(<App />);
 
@@ -151,6 +197,8 @@ describe("TreasurFy dashboard", () => {
     expect(screen.getByText("1 stale")).toBeInTheDocument();
     expect(screen.getAllByText("£2,118,200").length).toBeGreaterThan(0);
     expect(screen.getByText("Liquidity risks")).toBeInTheDocument();
+    expect(screen.getByText("Payment workspace")).toBeInTheDocument();
+    expect(screen.getByText("Atlas Cloud Services GmbH")).toBeInTheDocument();
     expect(screen.getByText(/No files imported yet/)).toBeInTheDocument();
   });
 
@@ -159,10 +207,14 @@ describe("TreasurFy dashboard", () => {
       .mockResolvedValueOnce(jsonResponse(cashPosition))
       .mockResolvedValueOnce(jsonResponse([]))
       .mockResolvedValueOnce(jsonResponse(forecast))
+      .mockResolvedValueOnce(jsonResponse([paymentProfile]))
+      .mockResolvedValueOnce(jsonResponse([pendingPayment]))
       .mockResolvedValueOnce(jsonResponse(importRun))
       .mockResolvedValueOnce(jsonResponse(cashPosition))
       .mockResolvedValueOnce(jsonResponse([importRun]))
-      .mockResolvedValueOnce(jsonResponse({ ...forecast, reused_run: true }));
+      .mockResolvedValueOnce(jsonResponse({ ...forecast, reused_run: true }))
+      .mockResolvedValueOnce(jsonResponse([paymentProfile]))
+      .mockResolvedValueOnce(jsonResponse([pendingPayment]));
 
     render(<App />);
     await screen.findAllByText("£2,191,800");
@@ -177,7 +229,37 @@ describe("TreasurFy dashboard", () => {
 
     expect(await screen.findByText("2 accepted · 0 rejected · 0 duplicates skipped"))
       .toBeInTheDocument();
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(7));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(11));
     expect(screen.getByText("balances.csv")).toBeInTheDocument();
+  });
+
+  it("approves a pending payment with the checker identity", async () => {
+    const approvedPayment: Payment = {
+      ...pendingPayment,
+      status: "approved",
+      decided_by_user_id: "user-demo-approver",
+      decided_at: "2026-10-04T09:00:00Z",
+      can_export: true,
+    };
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse(cashPosition))
+      .mockResolvedValueOnce(jsonResponse([]))
+      .mockResolvedValueOnce(jsonResponse(forecast))
+      .mockResolvedValueOnce(jsonResponse([paymentProfile]))
+      .mockResolvedValueOnce(jsonResponse([pendingPayment]))
+      .mockResolvedValueOnce(jsonResponse(approvedPayment))
+      .mockResolvedValueOnce(jsonResponse([approvedPayment]));
+
+    render(<App />);
+    await screen.findByText("Atlas Cloud Services GmbH");
+    fireEvent.click(screen.getByRole("button", { name: "Approve as checker" }));
+
+    expect(await screen.findByText("Payment approved by the demo checker.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Download XML" })).toBeInTheDocument();
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(7));
+    expect(vi.mocked(fetch).mock.calls[5][1]?.headers).toEqual({
+      "X-User-ID": "user-demo-approver",
+      "Content-Type": "application/json",
+    });
   });
 });

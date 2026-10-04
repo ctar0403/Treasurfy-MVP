@@ -1,9 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getCashPosition, getImportHistory, runForecast, uploadBankCsv } from "./api";
+import {
+  getCashPosition,
+  getImportHistory,
+  getPaymentProfiles,
+  getPayments,
+  runForecast,
+  uploadBankCsv,
+} from "./api";
 import { ForecastPanel } from "./components/ForecastPanel";
+import { PaymentPanel } from "./components/PaymentPanel";
 import { StatusBadge } from "./components/StatusBadge";
 import { formatMoney, formatTimestamp } from "./format";
-import type { CashPosition, Forecast, ImportRun } from "./types";
+import type {
+  CashPosition,
+  Forecast,
+  ImportRun,
+  Payment,
+  PaymentProfile,
+} from "./types";
 import "./styles.css";
 
 function initials(name: string): string {
@@ -18,6 +32,8 @@ export default function App() {
   const [cash, setCash] = useState<CashPosition | null>(null);
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [imports, setImports] = useState<ImportRun[]>([]);
+  const [paymentProfiles, setPaymentProfiles] = useState<PaymentProfile[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -28,14 +44,18 @@ export default function App() {
   const loadDashboard = useCallback(async () => {
     try {
       setError(null);
-      const [cashPosition, importHistory, forecastResult] = await Promise.all([
+      const [cashPosition, importHistory, forecastResult, profilesResult, paymentsResult] = await Promise.all([
         getCashPosition(),
         getImportHistory(),
         runForecast(),
+        getPaymentProfiles(),
+        getPayments(),
       ]);
       setCash(cashPosition);
       setImports(importHistory);
       setForecast(forecastResult);
+      setPaymentProfiles(profilesResult);
+      setPayments(paymentsResult);
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -45,6 +65,10 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const refreshPayments = useCallback(async () => {
+    setPayments(await getPayments());
   }, []);
 
   useEffect(() => {
@@ -163,6 +187,13 @@ export default function App() {
             )}
 
             {forecast && <ForecastPanel forecast={forecast} />}
+
+            <PaymentPanel
+              accounts={cash.accounts}
+              profiles={paymentProfiles}
+              payments={payments}
+              onPaymentsChanged={refreshPayments}
+            />
 
             <section className="dashboard-grid">
               <article className="panel entity-panel">

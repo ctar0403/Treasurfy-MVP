@@ -125,3 +125,63 @@ export type Forecast = {
   alerts: LiquidityAlert[];
   expected_flows: ExpectedCashFlow[];
 };
+
+export type PaymentProfile = {
+  id: string;
+  name: string;
+  version: string;
+  message_type: string;
+  allowed_currencies: string[];
+  maximum_amount: string;
+};
+
+export type Payment = {
+  id: string;
+  entity_id: string;
+  entity_name: string;
+  source_account_id: string;
+  source_account_name: string;
+  payment_profile_id: string;
+  payment_profile_name: string;
+  profile_version: string;
+  beneficiary_name: string;
+  beneficiary_account: string;
+  beneficiary_country_code: string;
+  amount: string;
+  currency: string;
+  requested_execution_date: string;
+  reference: string;
+  status: "draft" | "pending_approval" | "approved" | "rejected";
+  validation_status: "pending" | "passed" | "failed";
+  validation_errors: string[];
+  created_by_user_id: string;
+  created_by_name: string;
+  submitted_by_user_id: string | null;
+  decided_by_user_id: string | null;
+  created_at: string;
+  submitted_at: string | null;
+  decided_at: string | null;
+  can_export: boolean;
+};
+
+export type PaymentCreateInput = {
+  entity_id: string;
+  source_account_id: string;
+  payment_profile_id: string;
+  beneficiary_name: string;
+  beneficiary_account: string;
+  beneficiary_country_code: string;
+  amount: string;
+  currency: string;
+  requested_execution_date: string;
+  reference: string;
+};
+
+export type PaymentAuditEvent = {
+  id: string;
+  action: string;
+  actor_user_id: string | null;
+  actor_name: string;
+  detail: Record<string, unknown>;
+  created_at: string;
+};

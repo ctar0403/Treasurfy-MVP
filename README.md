@@ -75,7 +75,7 @@ infra/      Local and deployment configuration
 
 ## Current implementation
 
-Step 1 is implemented in `apps/api`:
+Steps 1 through 5 are implemented across `apps/api` and `apps/web`:
 
 - FastAPI application and SQLite development database
 - Workspace, membership/role, entity, bank-account, FX-rate, and audit models
@@ -91,6 +91,10 @@ Step 1 is implemented in `apps/api`:
 - Browser CSV upload, validation results, and import history
 - Reproducible 30/60/90-day forecasts from dated expected cash flows
 - Entity minimum-cash rules, rankings, and projected liquidity alerts
+- Versioned payment profiles and deterministic draft validation
+- Separate payment maker/checker identities and approval enforcement
+- Payment audit history and repeatable illustrative ISO 20022 XML export
+- Responsive payment preparation and approval workspace
 
 The identity header is only an MVP seam and will be replaced by managed login.
 The demo FX rates are explicit synthetic inputs, not live market data.
@@ -193,5 +197,33 @@ entity. One European entity intentionally crosses its threshold so the alert
 workflow is visible in the dashboard's forecast chart, horizon cards, ranked
 entity positions, expected-flow list, and liquidity warning.
 
-The next delivery step is payment preparation, profile validation,
-maker/checker approval, audit history, and illustrative ISO 20022 export.
+## Payment preparation and approval
+
+The seeded payment profile accepts GBP, USD, and EUR credit transfers up to
+1,000,000 in the payment currency. Validation checks workspace ownership,
+entity/account alignment, source-account currency, profile currency and amount
+limits, execution date, beneficiary country, and account identifier format.
+
+The web demonstration uses separate synthetic identities: Priya is the maker
+and Alex is the checker. The API rejects self-approval even when an admin has
+both permissions. A seeded EUR payment is ready for approval so the workflow
+can be tested immediately.
+
+```text
+GET  /api/workspaces/workspace-demo/payment-profiles
+GET  /api/workspaces/workspace-demo/payments
+POST /api/workspaces/workspace-demo/payments
+POST /api/workspaces/workspace-demo/payments/{payment_id}/submit
+POST /api/workspaces/workspace-demo/payments/{payment_id}/approve
+POST /api/workspaces/workspace-demo/payments/{payment_id}/reject
+GET  /api/workspaces/workspace-demo/payments/{payment_id}/audit-events
+GET  /api/workspaces/workspace-demo/payments/{payment_id}/iso20022
+```
+
+XML export is available only after approval. Repeated export returns the same
+content and SHA-256 digest. The generated `pain.001.001.03` document is an
+illustrative interoperability artifact: it is not certified by a bank and is
+never transmitted.
+
+The next delivery step is the grounded daily treasury brief, final experience
+polish, deployment configuration, and MVP hardening.
