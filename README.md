@@ -73,5 +73,42 @@ apps/web/   React and TypeScript application (added after the API contract)
 infra/      Local and deployment configuration
 ```
 
-Setup and run commands will be added here with each implemented step so this
-remains the only project document.
+## Current implementation
+
+Step 1 is implemented in `apps/api`:
+
+- FastAPI application and SQLite development database
+- Workspace, membership/role, entity, bank-account, FX-rate, and audit models
+- Synthetic demo data for three entities and six GBP/USD/EUR accounts
+- Workspace access boundary using a temporary `X-User-ID` identity header
+- Consolidated base-currency cash position with entity/account drill-down
+- Balance and FX timestamps plus stale-account reporting
+- Automated health, calculation, reconciliation, and isolation tests
+
+The identity header is only an MVP seam and will be replaced by managed login.
+The demo FX rates are explicit synthetic inputs, not live market data.
+
+## Run the API
+
+From `apps/api` with Python 3.12 or newer:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python -m pip install -e ".[dev]"
+.\.venv\Scripts\python -m pytest
+.\.venv\Scripts\python -m uvicorn treasurfy.main:app --reload
+```
+
+Open the API documentation at `http://127.0.0.1:8000/docs`.
+
+The seeded cash-position request is:
+
+```powershell
+Invoke-RestMethod `
+  -Uri http://127.0.0.1:8000/api/workspaces/workspace-demo/cash-position `
+  -Headers @{ 'X-User-ID' = 'user-demo-admin' }
+```
+
+The first run creates `apps/api/treasurfy.db`. Remove it only when intentionally
+resetting local synthetic data. The next delivery step is idempotent CSV balance
+and transaction import into this workspace model.
