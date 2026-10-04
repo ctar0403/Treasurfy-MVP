@@ -1,4 +1,4 @@
-import type { CashPosition, ImportRun } from "./types";
+import type { CashPosition, Forecast, ImportRun } from "./types";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 export const DEMO_WORKSPACE_ID = "workspace-demo";
@@ -41,5 +41,13 @@ export function uploadBankCsv(file: File): Promise<ImportRun> {
   return request(`/api/workspaces/${DEMO_WORKSPACE_ID}/imports/bank-csv`, {
     method: "POST",
     body: form,
+  });
+}
+
+export function runForecast(): Promise<Forecast> {
+  return request(`/api/workspaces/${DEMO_WORKSPACE_ID}/forecasts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ horizon_days: 90 }),
   });
 }

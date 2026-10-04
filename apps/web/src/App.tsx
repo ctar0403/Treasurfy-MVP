@@ -1,25 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getCashPosition, getImportHistory, uploadBankCsv } from "./api";
+import { getCashPosition, getImportHistory, runForecast, uploadBankCsv } from "./api";
+import { ForecastPanel } from "./components/ForecastPanel";
 import { StatusBadge } from "./components/StatusBadge";
-import type { CashPosition, ImportRun } from "./types";
+import { formatMoney, formatTimestamp } from "./format";
+import type { CashPosition, Forecast, ImportRun } from "./types";
 import "./styles.css";
-
-function formatMoney(amount: string, currency: string): string {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Number(amount));
-}
-
-function formatTimestamp(value: string | null): string {
-  if (!value) return "Not available";
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 function initials(name: string): string {
   return name
@@ -31,6 +16,7 @@ function initials(name: string): string {
 
 export default function App() {
   const [cash, setCash] = useState<CashPosition | null>(null);
+  const [forecast, setForecast] = useState<Forecast | null>(null);
   const [imports, setImports] = useState<ImportRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,12 +28,14 @@ export default function App() {
   const loadDashboard = useCallback(async () => {
     try {
       setError(null);
-      const [cashPosition, importHistory] = await Promise.all([
+      const [cashPosition, importHistory, forecastResult] = await Promise.all([
         getCashPosition(),
         getImportHistory(),
+        runForecast(),
       ]);
       setCash(cashPosition);
       setImports(importHistory);
+      setForecast(forecastResult);
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -173,6 +161,8 @@ export default function App() {
                 </span>
               </div>
             )}
+
+            {forecast && <ForecastPanel forecast={forecast} />}
 
             <section className="dashboard-grid">
               <article className="panel entity-panel">

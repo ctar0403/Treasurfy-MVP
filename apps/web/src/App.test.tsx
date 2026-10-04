@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
-import type { CashPosition, ImportRun } from "./types";
+import type { CashPosition, Forecast, ImportRun } from "./types";
 
 const cashPosition: CashPosition = {
   workspace_id: "workspace-demo",
@@ -57,6 +57,69 @@ const importRun: ImportRun = {
   issues: [],
 };
 
+const forecast: Forecast = {
+  forecast_run_id: "forecast-1",
+  reused_run: false,
+  as_of_date: "2026-10-04",
+  horizon_days: 90,
+  base_currency: "GBP",
+  opening_cash: "2191800.00",
+  input_fingerprint: "fingerprint",
+  created_at: "2026-10-04T08:00:00Z",
+  horizons: [
+    { days: 30, date: "2026-11-03", total_cash: "2118200.00", change_from_opening: "-73600.00" },
+    { days: 60, date: "2026-12-03", total_cash: "2153000.00", change_from_opening: "-38800.00" },
+    { days: 90, date: "2027-01-02", total_cash: "2013000.00", change_from_opening: "-178800.00" },
+  ],
+  points: Array.from({ length: 91 }, (_, index) => ({
+    date: new Date(Date.UTC(2026, 9, 4 + index)).toISOString().slice(0, 10),
+    total_cash: index < 30 ? "2191800.00" : "2118200.00",
+  })),
+  entities: [
+    {
+      entity_id: "entity-eu",
+      entity_name: "Northstar Europe GmbH",
+      opening_cash: "338800.00",
+      projected_30_days: "115200.00",
+      projected_60_days: "218400.00",
+      projected_90_days: "218400.00",
+      minimum_balance: "150000.00",
+      status: "at_risk",
+      first_breach_date: "2026-10-24",
+      rank_at_30_days: 3,
+    },
+  ],
+  alerts: [
+    {
+      entity_id: "entity-eu",
+      entity_name: "Northstar Europe GmbH",
+      code: "ENTITY_BELOW_MINIMUM",
+      severity: "high",
+      breach_date: "2026-10-24",
+      projected_balance: "115200.00",
+      minimum_balance: "150000.00",
+      message: "Northstar Europe GmbH is projected below its minimum cash threshold.",
+    },
+  ],
+  expected_flows: [
+    {
+      id: "flow-1",
+      entity_id: "entity-eu",
+      entity_name: "Northstar Europe GmbH",
+      account_id: "account-eu",
+      account_name: "EU Operating",
+      name: "EU payroll and taxes",
+      direction: "outflow",
+      amount: "260000.00",
+      currency: "EUR",
+      base_currency_amount: "-223600.00",
+      due_date: "2026-10-24",
+      source: "demo",
+      status: "planned",
+    },
+  ],
+};
+
 function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
     status: 200,
@@ -77,14 +140,17 @@ describe("TreasurFy dashboard", () => {
   it("shows consolidated cash, freshness, entities, and accounts", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(jsonResponse(cashPosition))
-      .mockResolvedValueOnce(jsonResponse([]));
+      .mockResolvedValueOnce(jsonResponse([]))
+      .mockResolvedValueOnce(jsonResponse(forecast));
 
     render(<App />);
 
-    expect(await screen.findByText("£2,191,800")).toBeInTheDocument();
+    expect((await screen.findAllByText("£2,191,800")).length).toBeGreaterThan(0);
     expect(screen.getAllByText("Northstar UK Ltd")).toHaveLength(2);
     expect(screen.getByText("HSBC")).toBeInTheDocument();
     expect(screen.getByText("1 stale")).toBeInTheDocument();
+    expect(screen.getAllByText("£2,118,200").length).toBeGreaterThan(0);
+    expect(screen.getByText("Liquidity risks")).toBeInTheDocument();
     expect(screen.getByText(/No files imported yet/)).toBeInTheDocument();
   });
 
@@ -92,12 +158,14 @@ describe("TreasurFy dashboard", () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(jsonResponse(cashPosition))
       .mockResolvedValueOnce(jsonResponse([]))
+      .mockResolvedValueOnce(jsonResponse(forecast))
       .mockResolvedValueOnce(jsonResponse(importRun))
       .mockResolvedValueOnce(jsonResponse(cashPosition))
-      .mockResolvedValueOnce(jsonResponse([importRun]));
+      .mockResolvedValueOnce(jsonResponse([importRun]))
+      .mockResolvedValueOnce(jsonResponse({ ...forecast, reused_run: true }));
 
     render(<App />);
-    await screen.findByText("£2,191,800");
+    await screen.findAllByText("£2,191,800");
 
     const file = new File(["record_type,account_id"], "balances.csv", {
       type: "text/csv",
@@ -109,7 +177,7 @@ describe("TreasurFy dashboard", () => {
 
     expect(await screen.findByText("2 accepted · 0 rejected · 0 duplicates skipped"))
       .toBeInTheDocument();
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(5));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(7));
     expect(screen.getByText("balances.csv")).toBeInTheDocument();
   });
 });

@@ -57,3 +57,71 @@ export type ImportRun = {
   completed_at: string | null;
   issues: ImportIssue[];
 };
+
+export type ExpectedCashFlow = {
+  id: string;
+  entity_id: string;
+  entity_name: string;
+  account_id: string;
+  account_name: string;
+  name: string;
+  direction: "inflow" | "outflow";
+  amount: string;
+  currency: string;
+  base_currency_amount: string;
+  due_date: string;
+  source: string;
+  status: string;
+};
+
+export type ForecastPoint = {
+  date: string;
+  total_cash: string;
+};
+
+export type ForecastHorizon = {
+  days: number;
+  date: string;
+  total_cash: string;
+  change_from_opening: string;
+};
+
+export type EntityForecast = {
+  entity_id: string;
+  entity_name: string;
+  opening_cash: string;
+  projected_30_days: string;
+  projected_60_days: string;
+  projected_90_days: string;
+  minimum_balance: string | null;
+  status: "healthy" | "at_risk";
+  first_breach_date: string | null;
+  rank_at_30_days: number;
+};
+
+export type LiquidityAlert = {
+  entity_id: string;
+  entity_name: string;
+  code: string;
+  severity: string;
+  breach_date: string;
+  projected_balance: string;
+  minimum_balance: string;
+  message: string;
+};
+
+export type Forecast = {
+  forecast_run_id: string;
+  reused_run: boolean;
+  as_of_date: string;
+  horizon_days: number;
+  base_currency: string;
+  opening_cash: string;
+  input_fingerprint: string;
+  created_at: string;
+  horizons: ForecastHorizon[];
+  points: ForecastPoint[];
+  entities: EntityForecast[];
+  alerts: LiquidityAlert[];
+  expected_flows: ExpectedCashFlow[];
+};

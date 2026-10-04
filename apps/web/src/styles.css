@@ -482,6 +482,244 @@ h2 {
   margin-top: 20px;
 }
 
+.forecast-section {
+  margin-top: 20px;
+}
+
+.forecast-panel {
+  overflow: hidden;
+}
+
+.horizon-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.horizon-card {
+  padding: 16px;
+  border: 1px solid #e4e9e5;
+  border-radius: 13px;
+  background: #fafbf9;
+}
+
+.horizon-card > span,
+.horizon-card small {
+  display: block;
+}
+
+.horizon-card > span {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.horizon-card strong {
+  font-size: 23px;
+}
+
+.horizon-card small {
+  margin-top: 7px;
+  font-size: 11px;
+}
+
+.positive-change {
+  color: var(--green);
+}
+
+.negative-change {
+  color: var(--red);
+}
+
+.forecast-chart {
+  position: relative;
+  min-height: 230px;
+  padding-left: 70px;
+}
+
+.forecast-chart svg {
+  width: 100%;
+  height: 230px;
+  overflow: visible;
+}
+
+.chart-scale {
+  position: absolute;
+  inset: 20px auto 28px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.chart-axis {
+  stroke: #dfe5e0;
+  stroke-width: 1;
+}
+
+.chart-line {
+  fill: none;
+  stroke: var(--green);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.chart-marker {
+  fill: white;
+  stroke: var(--green);
+  stroke-width: 3;
+}
+
+.chart-label {
+  fill: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.forecast-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  padding-top: 16px;
+  color: var(--muted);
+  border-top: 1px solid #e9ece8;
+  font-size: 12px;
+}
+
+.forecast-detail-grid {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.risk-count {
+  padding: 6px 9px;
+  color: var(--green-dark);
+  border-radius: 999px;
+  background: var(--green-soft);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.risk-count--active {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.alert-list {
+  margin-bottom: 22px;
+}
+
+.liquidity-alert {
+  padding: 15px;
+  display: flex;
+  gap: 12px;
+  border: 1px solid #f0c9c4;
+  border-radius: 12px;
+  background: var(--red-soft);
+}
+
+.alert-icon {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: white;
+  border-radius: 50%;
+  background: var(--red);
+  font-weight: 800;
+}
+
+.liquidity-alert p {
+  margin: 4px 0;
+  color: #763c37;
+  font-size: 13px;
+}
+
+.liquidity-alert div > span {
+  color: var(--red);
+  font-size: 11px;
+}
+
+.entity-forecast-list,
+.flow-list {
+  display: grid;
+}
+
+.entity-forecast-row {
+  padding: 13px 0;
+  display: grid;
+  grid-template-columns: 32px minmax(150px, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid #e9ece8;
+}
+
+.rank {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  border-radius: 8px;
+  background: #f0f3ef;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.entity-forecast-row div span {
+  margin-top: 3px;
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.flow-row {
+  padding: 13px 0;
+  display: grid;
+  grid-template-columns: 34px minmax(150px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid #e9ece8;
+}
+
+.flow-row:first-child,
+.entity-forecast-row:first-child {
+  border-top: 0;
+}
+
+.flow-direction {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  font-weight: 800;
+}
+
+.flow-direction--inflow {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.flow-direction--outflow {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.flow-row div span {
+  margin-top: 3px;
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -602,6 +840,10 @@ footer {
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+
+  .forecast-detail-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -625,6 +867,10 @@ footer {
   }
 
   .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .horizon-grid {
     grid-template-columns: 1fr;
   }
 
@@ -659,5 +905,21 @@ footer {
 
   .history-counts {
     flex-wrap: wrap;
+  }
+
+  .forecast-chart {
+    padding-left: 0;
+  }
+
+  .chart-scale {
+    display: none;
+  }
+
+  .entity-forecast-row {
+    grid-template-columns: 32px minmax(130px, 1fr) auto;
+  }
+
+  .entity-forecast-row .status {
+    grid-column: 2 / -1;
   }
 }

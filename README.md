@@ -190,5 +190,8 @@ POST /api/workspaces/workspace-demo/expected-cash-flows
 
 The seeded data includes seven expected flows and minimum-cash rules for each
 entity. One European entity intentionally crosses its threshold so the alert
-workflow is visible. The next delivery step adds the forecast chart, horizon
-cards, expected-flow list, and liquidity warnings to the web dashboard.
+workflow is visible in the dashboard's forecast chart, horizon cards, ranked
+entity positions, expected-flow list, and liquidity warning.
+
+The next delivery step is payment preparation, profile validation,
+maker/checker approval, audit history, and illustrative ISO 20022 export.
