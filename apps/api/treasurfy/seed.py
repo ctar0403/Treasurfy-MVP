@@ -20,6 +20,7 @@ DEMO_WORKSPACE_ID = "workspace-demo"
 SECONDARY_WORKSPACE_ID = "workspace-secondary"
 DEMO_USER_ID = "user-demo-admin"
 OUTSIDER_USER_ID = "user-outsider"
+VIEWER_USER_ID = "user-demo-viewer"
 
 
 def seed_demo_data(session: Session) -> None:
@@ -50,6 +51,11 @@ def seed_demo_data(session: Session) -> None:
                 email="outsider@example.test",
                 display_name="Other Workspace User",
             ),
+            User(
+                id=VIEWER_USER_ID,
+                email="treasury.viewer@example.test",
+                display_name="Treasury Viewer",
+            ),
             Membership(
                 id="membership-demo-admin",
                 workspace_id=DEMO_WORKSPACE_ID,
@@ -61,6 +67,12 @@ def seed_demo_data(session: Session) -> None:
                 workspace_id=SECONDARY_WORKSPACE_ID,
                 user_id=OUTSIDER_USER_ID,
                 role=MembershipRole.ADMIN,
+            ),
+            Membership(
+                id="membership-demo-viewer",
+                workspace_id=DEMO_WORKSPACE_ID,
+                user_id=VIEWER_USER_ID,
+                role=MembershipRole.VIEWER,
             ),
         ]
     )

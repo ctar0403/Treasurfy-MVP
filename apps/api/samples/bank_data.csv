@@ -1,0 +1,5 @@
+record_type,account_id,occurred_at,amount,currency,transaction_id,description
+BALANCE,account-hsbc-gbp,2026-10-04T09:00:00Z,875000.00,GBP,,
+TRANSACTION,account-hsbc-gbp,2026-10-04T08:20:00Z,-12500.00,GBP,HSBC-20261004-001,Supplier payment
+TRANSACTION,account-hsbc-gbp,2026-10-04T08:35:00Z,42000.00,GBP,HSBC-20261004-002,Customer receipt
+TRANSACTION,account-jpm-usd,2026-10-04T08:45:00Z,-8500.00,USD,JPM-20261004-001,Cloud services

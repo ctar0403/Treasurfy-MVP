@@ -84,6 +84,9 @@ Step 1 is implemented in `apps/api`:
 - Consolidated base-currency cash position with entity/account drill-down
 - Balance and FX timestamps plus stale-account reporting
 - Automated health, calculation, reconciliation, and isolation tests
+- Versioned CSV balance/transaction imports with persisted run history
+- Exact-file and transaction-level duplicate protection
+- Partial imports with persisted row numbers and validation issues
 
 The identity header is only an MVP seam and will be replaced by managed login.
 The demo FX rates are explicit synthetic inputs, not live market data.
@@ -110,5 +113,41 @@ Invoke-RestMethod `
 ```
 
 The first run creates `apps/api/treasurfy.db`. Remove it only when intentionally
-resetting local synthetic data. The next delivery step is idempotent CSV balance
-and transaction import into this workspace model.
+resetting local synthetic data.
+
+## Import bank data
+
+The reusable profile `treasurfy-bank-csv` version `1.0.0` accepts UTF-8 CSV
+files with these columns:
+
+```text
+record_type,account_id,occurred_at,amount,currency,transaction_id,description
+```
+
+- `record_type` is `BALANCE` or `TRANSACTION`.
+- `occurred_at` is an ISO 8601 timestamp with a timezone.
+- `currency` must match the configured account.
+- `transaction_id` is required for transactions and provides duplicate
+  protection.
+- Valid rows are saved even if other rows fail; rejected rows are returned with
+  their source line and reason.
+- Uploading the exact same file again returns the original run without writing
+  duplicate data.
+
+A working file is available at `apps/api/samples/bank_data.csv`. Upload it with:
+
+```powershell
+curl.exe --noproxy "*" `
+  -H "X-User-ID: user-demo-admin" `
+  -F "file=@samples/bank_data.csv;type=text/csv" `
+  http://127.0.0.1:8000/api/workspaces/workspace-demo/imports/bank-csv
+```
+
+Import history is available from:
+
+```text
+GET /api/workspaces/workspace-demo/imports
+```
+
+The next delivery step is the cash dashboard API built from imported snapshots
+and transactions, followed by the first web interface.

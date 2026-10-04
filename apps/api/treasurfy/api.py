@@ -2,16 +2,32 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Header,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from treasurfy.schemas import CashPositionResponse, HealthResponse
-from treasurfy.services.cash_position import (
-    MissingFxRateError,
+from treasurfy.schemas import CashPositionResponse, HealthResponse, ImportRunResponse
+from treasurfy.services.access import (
     WorkspaceAccessDeniedError,
     WorkspaceNotFoundError,
+)
+from treasurfy.services.cash_position import (
+    MissingFxRateError,
     get_cash_position,
+)
+from treasurfy.services.imports import (
+    ImportFileError,
+    import_bank_csv,
+    list_import_runs,
 )
 
 router = APIRouter(prefix="/api")
@@ -63,4 +79,57 @@ def cash_position(
         raise HTTPException(
             status_code=409,
             detail=f"Missing {error.currency} to workspace base-currency FX rate.",
+        ) from error
+
+
+@router.post(
+    "/workspaces/{workspace_id}/imports/bank-csv",
+    response_model=ImportRunResponse,
+)
+async def upload_bank_csv(
+    workspace_id: str,
+    file: UploadFile = File(...),
+    actor_user_id: str = Depends(get_actor_user_id),
+    session: Session = Depends(get_session),
+) -> ImportRunResponse:
+    content = await file.read()
+    try:
+        return import_bank_csv(
+            session,
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+            file_name=file.filename or "bank-data.csv",
+            content=content,
+        )
+    except WorkspaceNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Workspace not found.") from error
+    except WorkspaceAccessDeniedError as error:
+        raise HTTPException(
+            status_code=403,
+            detail="User is not allowed to import data for this workspace.",
+        ) from error
+    except ImportFileError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@router.get(
+    "/workspaces/{workspace_id}/imports",
+    response_model=list[ImportRunResponse],
+)
+def import_history(
+    workspace_id: str,
+    actor_user_id: str = Depends(get_actor_user_id),
+    session: Session = Depends(get_session),
+) -> list[ImportRunResponse]:
+    try:
+        return list_import_runs(
+            session,
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+        )
+    except WorkspaceNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Workspace not found.") from error
+    except WorkspaceAccessDeniedError as error:
+        raise HTTPException(
+            status_code=403, detail="User does not belong to this workspace."
         ) from error

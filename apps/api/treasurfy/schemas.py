@@ -49,3 +49,30 @@ class CashPositionResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     database: str
+
+
+class ImportIssueResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    row_number: int
+    code: str
+    message: str
+
+
+class ImportRunResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    import_run_id: str
+    profile_id: str
+    profile_version: str
+    file_name: str
+    file_sha256: str
+    status: str
+    total_rows: int
+    accepted_rows: int
+    rejected_rows: int
+    skipped_duplicate_rows: int
+    duplicate_file: bool
+    created_at: str
+    completed_at: str | None
+    issues: list[ImportIssueResponse]

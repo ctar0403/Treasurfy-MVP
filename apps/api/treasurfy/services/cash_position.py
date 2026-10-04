@@ -7,19 +7,16 @@ from decimal import Decimal, ROUND_HALF_UP
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from treasurfy.models import BankAccount, Entity, FxRate, Membership, Workspace
+from treasurfy.models import BankAccount, Entity, FxRate
 from treasurfy.schemas import AccountCash, CashPositionResponse, EntityCash
+from treasurfy.services.access import (
+    WorkspaceAccessDeniedError,
+    WorkspaceNotFoundError,
+    require_workspace_access,
+)
 
 MONEY_QUANTUM = Decimal("0.01")
 FRESHNESS_LIMIT = timedelta(hours=24)
-
-
-class WorkspaceNotFoundError(Exception):
-    pass
-
-
-class WorkspaceAccessDeniedError(Exception):
-    pass
 
 
 class MissingFxRateError(Exception):
@@ -56,18 +53,11 @@ def get_cash_position(
     actor_user_id: str,
     now: datetime | None = None,
 ) -> CashPositionResponse:
-    workspace = session.get(Workspace, workspace_id)
-    if workspace is None:
-        raise WorkspaceNotFoundError
-
-    membership = session.scalar(
-        select(Membership).where(
-            Membership.workspace_id == workspace_id,
-            Membership.user_id == actor_user_id,
-        )
+    workspace, _ = require_workspace_access(
+        session,
+        workspace_id=workspace_id,
+        actor_user_id=actor_user_id,
     )
-    if membership is None:
-        raise WorkspaceAccessDeniedError
 
     account_rows = session.execute(
         select(BankAccount, Entity)
