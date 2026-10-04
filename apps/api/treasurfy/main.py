@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import Engine
 
 from treasurfy.api import router
@@ -35,6 +36,13 @@ def create_app(
         lifespan=lifespan,
     )
     application.state.database = database
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(application_settings.cors_origins),
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Content-Type", "X-User-ID"],
+    )
     application.include_router(router)
     return application
 

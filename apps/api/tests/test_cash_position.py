@@ -23,6 +23,20 @@ def test_health_checks_database(client: TestClient) -> None:
     assert response.json() == {"status": "ok", "database": "ok"}
 
 
+def test_local_web_origin_is_allowed_by_cors(client: TestClient) -> None:
+    response = client.options(
+        f"/api/workspaces/{DEMO_WORKSPACE_ID}/cash-position",
+        headers={
+            "Origin": "http://127.0.0.1:5173",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "X-User-ID",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5173"
+
+
 def test_cash_position_consolidates_accounts_and_currencies(
     client: TestClient,
 ) -> None:

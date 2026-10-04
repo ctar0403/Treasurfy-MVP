@@ -69,7 +69,7 @@ illustrative ISO 20022 `pain.001` file.
 
 ```text
 apps/api/   FastAPI application and tests
-apps/web/   React and TypeScript application (added after the API contract)
+apps/web/   React and TypeScript treasury dashboard
 infra/      Local and deployment configuration
 ```
 
@@ -87,6 +87,8 @@ Step 1 is implemented in `apps/api`:
 - Versioned CSV balance/transaction imports with persisted run history
 - Exact-file and transaction-level duplicate protection
 - Partial imports with persisted row numbers and validation issues
+- Responsive cash dashboard with entity and account drill-down
+- Browser CSV upload, validation results, and import history
 
 The identity header is only an MVP seam and will be replaced by managed login.
 The demo FX rates are explicit synthetic inputs, not live market data.
@@ -149,5 +151,26 @@ Import history is available from:
 GET /api/workspaces/workspace-demo/imports
 ```
 
-The next delivery step is the cash dashboard API built from imported snapshots
-and transactions, followed by the first web interface.
+## Run the web dashboard
+
+Keep the API running, then open a second PowerShell window:
+
+```powershell
+cd apps\web
+npm.cmd install
+npm.cmd run test
+npm.cmd run dev
+```
+
+Open `http://127.0.0.1:5173`. The dashboard uses the temporary demo identity and
+workspace automatically. To point it at another API, set `VITE_API_URL` before
+running or building the web application.
+
+Create a production bundle with:
+
+```powershell
+npm.cmd run build
+```
+
+The next delivery step is deterministic 30/60/90-day forecasting and entity
+liquidity alerts.
