@@ -89,6 +89,8 @@ Step 1 is implemented in `apps/api`:
 - Partial imports with persisted row numbers and validation issues
 - Responsive cash dashboard with entity and account drill-down
 - Browser CSV upload, validation results, and import history
+- Reproducible 30/60/90-day forecasts from dated expected cash flows
+- Entity minimum-cash rules, rankings, and projected liquidity alerts
 
 The identity header is only an MVP seam and will be replaced by managed login.
 The demo FX rates are explicit synthetic inputs, not live market data.
@@ -172,5 +174,21 @@ Create a production bundle with:
 npm.cmd run build
 ```
 
-The next delivery step is deterministic 30/60/90-day forecasting and entity
-liquidity alerts.
+## Forecasting and liquidity
+
+The forecast starts with the latest account balances, converts all values using
+the workspace's explicit FX rates, and applies planned inflows and outflows on
+their due dates. It stores a SHA-256 fingerprint of every balance, rate, flow,
+rule, and forecast date used. Running it again with unchanged inputs returns the
+same immutable run.
+
+```text
+POST /api/workspaces/workspace-demo/forecasts
+GET  /api/workspaces/workspace-demo/expected-cash-flows
+POST /api/workspaces/workspace-demo/expected-cash-flows
+```
+
+The seeded data includes seven expected flows and minimum-cash rules for each
+entity. One European entity intentionally crosses its threshold so the alert
+workflow is visible. The next delivery step adds the forecast chart, horizon
+cards, expected-flow list, and liquidity warnings to the web dashboard.

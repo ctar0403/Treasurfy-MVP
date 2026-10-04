@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import UTC, datetime
 
 from fastapi import (
     APIRouter,
@@ -15,7 +16,15 @@ from fastapi import (
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from treasurfy.schemas import CashPositionResponse, HealthResponse, ImportRunResponse
+from treasurfy.schemas import (
+    CashPositionResponse,
+    ExpectedCashFlowCreate,
+    ExpectedCashFlowResponse,
+    ForecastRequest,
+    ForecastResponse,
+    HealthResponse,
+    ImportRunResponse,
+)
 from treasurfy.services.access import (
     WorkspaceAccessDeniedError,
     WorkspaceNotFoundError,
@@ -23,6 +32,13 @@ from treasurfy.services.access import (
 from treasurfy.services.cash_position import (
     MissingFxRateError,
     get_cash_position,
+)
+from treasurfy.services.forecast import (
+    CashFlowValidationError,
+    ForecastConfigurationError,
+    add_expected_cash_flow,
+    create_forecast,
+    list_expected_cash_flows,
 )
 from treasurfy.services.imports import (
     ImportFileError,
@@ -133,3 +149,85 @@ def import_history(
         raise HTTPException(
             status_code=403, detail="User does not belong to this workspace."
         ) from error
+
+
+@router.post(
+    "/workspaces/{workspace_id}/forecasts",
+    response_model=ForecastResponse,
+)
+def run_forecast(
+    workspace_id: str,
+    request: ForecastRequest,
+    actor_user_id: str = Depends(get_actor_user_id),
+    session: Session = Depends(get_session),
+) -> ForecastResponse:
+    try:
+        return create_forecast(
+            session,
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+            as_of_date=request.as_of_date or datetime.now(UTC).date(),
+            horizon_days=request.horizon_days,
+        )
+    except WorkspaceNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Workspace not found.") from error
+    except WorkspaceAccessDeniedError as error:
+        raise HTTPException(
+            status_code=403, detail="User does not belong to this workspace."
+        ) from error
+    except ForecastConfigurationError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@router.get(
+    "/workspaces/{workspace_id}/expected-cash-flows",
+    response_model=list[ExpectedCashFlowResponse],
+)
+def expected_cash_flows(
+    workspace_id: str,
+    actor_user_id: str = Depends(get_actor_user_id),
+    session: Session = Depends(get_session),
+) -> list[ExpectedCashFlowResponse]:
+    try:
+        return list_expected_cash_flows(
+            session,
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+        )
+    except WorkspaceNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Workspace not found.") from error
+    except WorkspaceAccessDeniedError as error:
+        raise HTTPException(
+            status_code=403, detail="User does not belong to this workspace."
+        ) from error
+    except ForecastConfigurationError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@router.post(
+    "/workspaces/{workspace_id}/expected-cash-flows",
+    response_model=ExpectedCashFlowResponse,
+    status_code=201,
+)
+def create_expected_cash_flow(
+    workspace_id: str,
+    request: ExpectedCashFlowCreate,
+    actor_user_id: str = Depends(get_actor_user_id),
+    session: Session = Depends(get_session),
+) -> ExpectedCashFlowResponse:
+    try:
+        return add_expected_cash_flow(
+            session,
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+            request=request,
+        )
+    except WorkspaceNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Workspace not found.") from error
+    except WorkspaceAccessDeniedError as error:
+        raise HTTPException(
+            status_code=403,
+            detail="User is not allowed to create cash flows for this workspace.",
+        ) from error
+    except (CashFlowValidationError, ForecastConfigurationError) as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error

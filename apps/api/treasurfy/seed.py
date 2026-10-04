@@ -9,7 +9,9 @@ from treasurfy.models import (
     AuditEvent,
     BankAccount,
     Entity,
+    ExpectedCashFlow,
     FxRate,
+    LiquidityRule,
     Membership,
     MembershipRole,
     User,
@@ -23,7 +25,7 @@ OUTSIDER_USER_ID = "user-outsider"
 VIEWER_USER_ID = "user-demo-viewer"
 
 
-def seed_demo_data(session: Session) -> None:
+def _seed_base_data(session: Session) -> None:
     if session.get(Workspace, DEMO_WORKSPACE_ID) is not None:
         return
 
@@ -215,3 +217,141 @@ def seed_demo_data(session: Session) -> None:
         )
     )
     session.commit()
+
+
+def _seed_forecast_data(session: Session) -> None:
+    if session.get(ExpectedCashFlow, "flow-uk-renewal") is not None:
+        return
+
+    now = datetime.now(UTC).replace(microsecond=0)
+    today = now.date()
+    session.add_all(
+        [
+            ExpectedCashFlow(
+                id="flow-uk-renewal",
+                workspace_id=DEMO_WORKSPACE_ID,
+                entity_id="entity-uk",
+                account_id="account-hsbc-gbp",
+                name="Annual customer renewal",
+                direction="inflow",
+                amount=Decimal("180000.00"),
+                currency="GBP",
+                due_date=today + timedelta(days=12),
+                source="demo",
+                status="planned",
+                created_at=now,
+            ),
+            ExpectedCashFlow(
+                id="flow-uk-payroll",
+                workspace_id=DEMO_WORKSPACE_ID,
+                entity_id="entity-uk",
+                account_id="account-hsbc-gbp",
+                name="UK payroll",
+                direction="outflow",
+                amount=Decimal("220000.00"),
+                currency="GBP",
+                due_date=today + timedelta(days=25),
+                source="demo",
+                status="planned",
+                created_at=now,
+            ),
+            ExpectedCashFlow(
+                id="flow-us-receipt",
+                workspace_id=DEMO_WORKSPACE_ID,
+                entity_id="entity-us",
+                account_id="account-jpm-usd",
+                name="Enterprise customer receipt",
+                direction="inflow",
+                amount=Decimal("250000.00"),
+                currency="USD",
+                due_date=today + timedelta(days=18),
+                source="demo",
+                status="planned",
+                created_at=now,
+            ),
+            ExpectedCashFlow(
+                id="flow-us-cloud",
+                workspace_id=DEMO_WORKSPACE_ID,
+                entity_id="entity-us",
+                account_id="account-jpm-usd",
+                name="Cloud infrastructure",
+                direction="outflow",
+                amount=Decimal("90000.00"),
+                currency="USD",
+                due_date=today + timedelta(days=33),
+                source="demo",
+                status="planned",
+                created_at=now,
+            ),
+            ExpectedCashFlow(
+                id="flow-eu-payroll",
+                workspace_id=DEMO_WORKSPACE_ID,
+                entity_id="entity-eu",
+                account_id="account-deutsche-eur",
+                name="EU payroll and taxes",
+                direction="outflow",
+                amount=Decimal("260000.00"),
+                currency="EUR",
+                due_date=today + timedelta(days=20),
+                source="demo",
+                status="planned",
+                created_at=now,
+            ),
+            ExpectedCashFlow(
+                id="flow-eu-receipt",
+                workspace_id=DEMO_WORKSPACE_ID,
+                entity_id="entity-eu",
+                account_id="account-deutsche-eur",
+                name="EU customer receivable",
+                direction="inflow",
+                amount=Decimal("120000.00"),
+                currency="EUR",
+                due_date=today + timedelta(days=50),
+                source="demo",
+                status="planned",
+                created_at=now,
+            ),
+            ExpectedCashFlow(
+                id="flow-uk-tax",
+                workspace_id=DEMO_WORKSPACE_ID,
+                entity_id="entity-uk",
+                account_id="account-hsbc-gbp",
+                name="Quarterly tax payment",
+                direction="outflow",
+                amount=Decimal("140000.00"),
+                currency="GBP",
+                due_date=today + timedelta(days=75),
+                source="demo",
+                status="planned",
+                created_at=now,
+            ),
+            LiquidityRule(
+                id="liquidity-rule-uk",
+                workspace_id=DEMO_WORKSPACE_ID,
+                entity_id="entity-uk",
+                minimum_balance_base=Decimal("600000.00"),
+                created_at=now,
+            ),
+            LiquidityRule(
+                id="liquidity-rule-us",
+                workspace_id=DEMO_WORKSPACE_ID,
+                entity_id="entity-us",
+                minimum_balance_base=Decimal("350000.00"),
+                created_at=now,
+            ),
+            LiquidityRule(
+                id="liquidity-rule-eu",
+                workspace_id=DEMO_WORKSPACE_ID,
+                entity_id="entity-eu",
+                minimum_balance_base=Decimal("150000.00"),
+                created_at=now,
+            ),
+        ]
+    )
+    session.commit()
+
+
+def seed_demo_data(session: Session) -> None:
+    if session.get(Workspace, DEMO_WORKSPACE_ID) is None:
+        _seed_base_data(session)
+    _seed_forecast_data(session)

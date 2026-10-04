@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
 
 from sqlalchemy import (
+    Date,
     DateTime,
     Enum as SqlEnum,
     ForeignKey,
@@ -222,6 +223,95 @@ class BankTransaction(Base):
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
     description: Mapped[str] = mapped_column(String(500), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ExpectedCashFlow(Base):
+    __tablename__ = "expected_cash_flows"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    entity_id: Mapped[str] = mapped_column(
+        ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    account_id: Mapped[str] = mapped_column(
+        ForeignKey("bank_accounts.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    direction: Mapped[str] = mapped_column(String(10), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(20, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    due_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    source: Mapped[str] = mapped_column(String(40), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class LiquidityRule(Base):
+    __tablename__ = "liquidity_rules"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id", "entity_id", name="uq_workspace_entity_liquidity_rule"
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    entity_id: Mapped[str] = mapped_column(
+        ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    minimum_balance_base: Mapped[Decimal] = mapped_column(
+        Numeric(20, 2), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ForecastRun(Base):
+    __tablename__ = "forecast_runs"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id", "input_fingerprint", name="uq_workspace_forecast_input"
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    actor_user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    as_of_date: Mapped[date] = mapped_column(Date, nullable=False)
+    horizon_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    base_currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    opening_cash: Mapped[Decimal] = mapped_column(Numeric(20, 2), nullable=False)
+    input_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ForecastPoint(Base):
+    __tablename__ = "forecast_points"
+    __table_args__ = (
+        UniqueConstraint(
+            "forecast_run_id",
+            "scope",
+            "entity_key",
+            "forecast_date",
+            name="uq_forecast_scope_date",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    forecast_run_id: Mapped[str] = mapped_column(
+        ForeignKey("forecast_runs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    scope: Mapped[str] = mapped_column(String(20), nullable=False)
+    entity_key: Mapped[str] = mapped_column(String(36), nullable=False, default="")
+    forecast_date: Mapped[date] = mapped_column(Date, nullable=False)
+    balance: Mapped[Decimal] = mapped_column(Numeric(20, 2), nullable=False)
 
 
 class AuditEvent(Base):
