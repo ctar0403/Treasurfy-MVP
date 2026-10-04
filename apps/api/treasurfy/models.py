@@ -314,6 +314,102 @@ class ForecastPoint(Base):
     balance: Mapped[Decimal] = mapped_column(Numeric(20, 2), nullable=False)
 
 
+class PaymentProfile(Base):
+    __tablename__ = "payment_profiles"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id", "name", "version", name="uq_workspace_payment_profile"
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(140), nullable=False)
+    version: Mapped[str] = mapped_column(String(30), nullable=False)
+    message_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    allowed_currencies: Mapped[str] = mapped_column(String(40), nullable=False)
+    maximum_amount: Mapped[Decimal] = mapped_column(Numeric(20, 2), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    entity_id: Mapped[str] = mapped_column(
+        ForeignKey("entities.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    source_account_id: Mapped[str] = mapped_column(
+        ForeignKey("bank_accounts.id", ondelete="RESTRICT"), nullable=False
+    )
+    payment_profile_id: Mapped[str] = mapped_column(
+        ForeignKey("payment_profiles.id", ondelete="RESTRICT"), nullable=False
+    )
+    profile_version: Mapped[str] = mapped_column(String(30), nullable=False)
+    beneficiary_name: Mapped[str] = mapped_column(String(140), nullable=False)
+    beneficiary_account: Mapped[str] = mapped_column(String(80), nullable=False)
+    beneficiary_country_code: Mapped[str] = mapped_column(String(2), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(20, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    requested_execution_date: Mapped[date] = mapped_column(Date, nullable=False)
+    reference: Mapped[str] = mapped_column(String(140), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    validation_status: Mapped[str] = mapped_column(String(20), nullable=False)
+    validation_detail: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    created_by_user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    submitted_by_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=True
+    )
+    decided_by_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    submitted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class PaymentDecision(Base):
+    __tablename__ = "payment_decisions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    payment_id: Mapped[str] = mapped_column(
+        ForeignKey("payments.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    actor_user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    decision: Mapped[str] = mapped_column(String(20), nullable=False)
+    comment: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class PaymentExport(Base):
+    __tablename__ = "payment_exports"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    payment_id: Mapped[str] = mapped_column(
+        ForeignKey("payments.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    actor_user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    format: Mapped[str] = mapped_column(String(40), nullable=False)
+    content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
 

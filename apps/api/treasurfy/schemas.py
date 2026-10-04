@@ -171,3 +171,77 @@ class ForecastResponse(BaseModel):
     entities: list[EntityForecastResponse]
     alerts: list[LiquidityAlertResponse]
     expected_flows: list[ExpectedCashFlowResponse]
+
+
+class PaymentProfileResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    name: str
+    version: str
+    message_type: str
+    allowed_currencies: list[str]
+    maximum_amount: str
+
+
+class PaymentCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    entity_id: str
+    source_account_id: str
+    payment_profile_id: str
+    beneficiary_name: str = Field(min_length=1, max_length=140)
+    beneficiary_account: str = Field(min_length=5, max_length=80)
+    beneficiary_country_code: str = Field(min_length=2, max_length=2)
+    amount: Decimal = Field(gt=0, max_digits=18, decimal_places=2)
+    currency: str = Field(min_length=3, max_length=3)
+    requested_execution_date: date
+    reference: str = Field(min_length=1, max_length=140)
+
+
+class PaymentDecisionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    comment: str = Field(default="", max_length=500)
+
+
+class PaymentResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    entity_id: str
+    entity_name: str
+    source_account_id: str
+    source_account_name: str
+    payment_profile_id: str
+    payment_profile_name: str
+    profile_version: str
+    beneficiary_name: str
+    beneficiary_account: str
+    beneficiary_country_code: str
+    amount: str
+    currency: str
+    requested_execution_date: date
+    reference: str
+    status: str
+    validation_status: str
+    validation_errors: list[str]
+    created_by_user_id: str
+    created_by_name: str
+    submitted_by_user_id: str | None
+    decided_by_user_id: str | None
+    created_at: str
+    submitted_at: str | None
+    decided_at: str | None
+    can_export: bool
+
+
+class PaymentAuditEventResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    action: str
+    actor_user_id: str | None
+    actor_name: str
+    detail: dict[str, object]
+    created_at: str

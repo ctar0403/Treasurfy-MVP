@@ -13,6 +13,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from fastapi.responses import Response
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -24,6 +25,11 @@ from treasurfy.schemas import (
     ForecastResponse,
     HealthResponse,
     ImportRunResponse,
+    PaymentAuditEventResponse,
+    PaymentCreate,
+    PaymentDecisionRequest,
+    PaymentProfileResponse,
+    PaymentResponse,
 )
 from treasurfy.services.access import (
     WorkspaceAccessDeniedError,
@@ -44,6 +50,18 @@ from treasurfy.services.imports import (
     ImportFileError,
     import_bank_csv,
     list_import_runs,
+)
+from treasurfy.services.payments import (
+    PaymentNotFoundError,
+    PaymentStateError,
+    PaymentValidationError,
+    create_payment,
+    decide_payment,
+    export_iso20022,
+    list_payment_audit_events,
+    list_payment_profiles,
+    list_payments,
+    submit_payment,
 )
 
 router = APIRouter(prefix="/api")
@@ -231,3 +249,234 @@ def create_expected_cash_flow(
         ) from error
     except (CashFlowValidationError, ForecastConfigurationError) as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@router.get(
+    "/workspaces/{workspace_id}/payment-profiles",
+    response_model=list[PaymentProfileResponse],
+)
+def payment_profiles(
+    workspace_id: str,
+    actor_user_id: str = Depends(get_actor_user_id),
+    session: Session = Depends(get_session),
+) -> list[PaymentProfileResponse]:
+    try:
+        return list_payment_profiles(
+            session,
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+        )
+    except WorkspaceNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Workspace not found.") from error
+    except WorkspaceAccessDeniedError as error:
+        raise HTTPException(
+            status_code=403, detail="User does not belong to this workspace."
+        ) from error
+
+
+@router.get(
+    "/workspaces/{workspace_id}/payments",
+    response_model=list[PaymentResponse],
+)
+def payments(
+    workspace_id: str,
+    actor_user_id: str = Depends(get_actor_user_id),
+    session: Session = Depends(get_session),
+) -> list[PaymentResponse]:
+    try:
+        return list_payments(
+            session,
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+        )
+    except WorkspaceNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Workspace not found.") from error
+    except WorkspaceAccessDeniedError as error:
+        raise HTTPException(
+            status_code=403, detail="User does not belong to this workspace."
+        ) from error
+
+
+@router.post(
+    "/workspaces/{workspace_id}/payments",
+    response_model=PaymentResponse,
+    status_code=201,
+)
+def prepare_payment(
+    workspace_id: str,
+    request: PaymentCreate,
+    actor_user_id: str = Depends(get_actor_user_id),
+    session: Session = Depends(get_session),
+) -> PaymentResponse:
+    try:
+        return create_payment(
+            session,
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+            request=request,
+        )
+    except WorkspaceNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Workspace not found.") from error
+    except WorkspaceAccessDeniedError as error:
+        raise HTTPException(
+            status_code=403,
+            detail="User is not allowed to prepare payments for this workspace.",
+        ) from error
+    except PaymentValidationError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@router.post(
+    "/workspaces/{workspace_id}/payments/{payment_id}/submit",
+    response_model=PaymentResponse,
+)
+def submit_prepared_payment(
+    workspace_id: str,
+    payment_id: str,
+    actor_user_id: str = Depends(get_actor_user_id),
+    session: Session = Depends(get_session),
+) -> PaymentResponse:
+    try:
+        return submit_payment(
+            session,
+            workspace_id=workspace_id,
+            payment_id=payment_id,
+            actor_user_id=actor_user_id,
+        )
+    except WorkspaceNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Workspace not found.") from error
+    except PaymentNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Payment not found.") from error
+    except WorkspaceAccessDeniedError as error:
+        raise HTTPException(status_code=403, detail="Payment submission is not allowed.") from error
+    except (PaymentStateError, PaymentValidationError) as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+def _decide_prepared_payment(
+    *,
+    workspace_id: str,
+    payment_id: str,
+    request: PaymentDecisionRequest,
+    actor_user_id: str,
+    session: Session,
+    decision: str,
+) -> PaymentResponse:
+    try:
+        return decide_payment(
+            session,
+            workspace_id=workspace_id,
+            payment_id=payment_id,
+            actor_user_id=actor_user_id,
+            decision=decision,
+            comment=request.comment,
+        )
+    except WorkspaceNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Workspace not found.") from error
+    except PaymentNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Payment not found.") from error
+    except WorkspaceAccessDeniedError as error:
+        raise HTTPException(status_code=403, detail="Payment approval is not allowed.") from error
+    except PaymentStateError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@router.post(
+    "/workspaces/{workspace_id}/payments/{payment_id}/approve",
+    response_model=PaymentResponse,
+)
+def approve_payment(
+    workspace_id: str,
+    payment_id: str,
+    request: PaymentDecisionRequest,
+    actor_user_id: str = Depends(get_actor_user_id),
+    session: Session = Depends(get_session),
+) -> PaymentResponse:
+    return _decide_prepared_payment(
+        workspace_id=workspace_id,
+        payment_id=payment_id,
+        request=request,
+        actor_user_id=actor_user_id,
+        session=session,
+        decision="approved",
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/payments/{payment_id}/reject",
+    response_model=PaymentResponse,
+)
+def reject_payment(
+    workspace_id: str,
+    payment_id: str,
+    request: PaymentDecisionRequest,
+    actor_user_id: str = Depends(get_actor_user_id),
+    session: Session = Depends(get_session),
+) -> PaymentResponse:
+    return _decide_prepared_payment(
+        workspace_id=workspace_id,
+        payment_id=payment_id,
+        request=request,
+        actor_user_id=actor_user_id,
+        session=session,
+        decision="rejected",
+    )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/payments/{payment_id}/audit-events",
+    response_model=list[PaymentAuditEventResponse],
+)
+def payment_audit_events(
+    workspace_id: str,
+    payment_id: str,
+    actor_user_id: str = Depends(get_actor_user_id),
+    session: Session = Depends(get_session),
+) -> list[PaymentAuditEventResponse]:
+    try:
+        return list_payment_audit_events(
+            session,
+            workspace_id=workspace_id,
+            payment_id=payment_id,
+            actor_user_id=actor_user_id,
+        )
+    except WorkspaceNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Workspace not found.") from error
+    except PaymentNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Payment not found.") from error
+    except WorkspaceAccessDeniedError as error:
+        raise HTTPException(
+            status_code=403, detail="Payment audit history is not available."
+        ) from error
+
+
+@router.get("/workspaces/{workspace_id}/payments/{payment_id}/iso20022")
+def payment_iso20022(
+    workspace_id: str,
+    payment_id: str,
+    actor_user_id: str = Depends(get_actor_user_id),
+    session: Session = Depends(get_session),
+) -> Response:
+    try:
+        content, digest = export_iso20022(
+            session,
+            workspace_id=workspace_id,
+            payment_id=payment_id,
+            actor_user_id=actor_user_id,
+        )
+        return Response(
+            content=content,
+            media_type="application/xml",
+            headers={
+                "Content-Disposition": f'attachment; filename="payment-{payment_id}.xml"',
+                "X-Content-SHA256": digest,
+            },
+        )
+    except WorkspaceNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Workspace not found.") from error
+    except PaymentNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Payment not found.") from error
+    except WorkspaceAccessDeniedError as error:
+        raise HTTPException(status_code=403, detail="Payment export is not allowed.") from error
+    except (PaymentStateError, PaymentValidationError) as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
