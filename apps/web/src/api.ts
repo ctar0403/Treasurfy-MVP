@@ -9,7 +9,9 @@ import type {
   PaymentProfile,
 } from "./types";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
+// Empty by default so the web app can call the API through a same-origin
+// reverse proxy (Vite locally, Nginx in the container deployment).
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "";
 export const DEMO_WORKSPACE_ID = "workspace-demo";
 export const DEMO_USER_ID = "user-demo-admin";
 export const DEMO_PREPARER_USER_ID = "user-demo-preparer";

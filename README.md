@@ -181,6 +181,41 @@ Create a production bundle with:
 npm.cmd run build
 ```
 
+## Temporary Cloudflare demo from this PC
+
+For a private demo without paying for a server, this PC can serve the app
+through Cloudflare Tunnel. This is a temporary setup: the PC and both app
+processes must stay on and connected to the internet. Use synthetic data only.
+The MVP has demo identities rather than real login, so protect the hostname
+with a Cloudflare Access email allowlist before publishing the tunnel route.
+
+1. In Cloudflare Zero Trust, create a self-hosted Access application for the
+   chosen demo hostname and allow only the demo attendees' email addresses.
+2. In Cloudflare Networking > Tunnels, create a tunnel and add a published
+   application route for that hostname to `http://127.0.0.1:5173`. Keep the
+   tunnel token private; run the install/run command Cloudflare gives you on
+   this PC.
+3. Start the API in one PowerShell window:
+
+   ```powershell
+   cd apps\api
+   .\.venv\Scripts\python.exe -m uvicorn treasurfy.main:app --host 127.0.0.1 --port 8000
+   ```
+
+4. Build and serve the web app in another PowerShell window. Replace the
+   hostname with the exact subdomain configured in Cloudflare:
+
+   ```powershell
+   cd apps\web
+   $env:TREASURFY_DEMO_HOST = "demo.example.com"
+   npm.cmd run build
+   npm.cmd run preview
+   ```
+
+The preview server proxies `/api` to the local API, so browsers use the same
+hostname for both. For an always-on demo, move the existing Docker Compose
+deployment to an always-on host and point a Cloudflare Tunnel there instead.
+
 ## Forecasting and liquidity
 
 The forecast starts with the latest account balances, converts all values using
