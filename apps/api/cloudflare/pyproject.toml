@@ -1,0 +1,22 @@
+[project]
+name = "treasurfy-cloudflare"
+version = "0.1.0"
+description = "Private TreasurFy demo on Cloudflare Workers and D1"
+requires-python = ">=3.13"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "pydantic>=2.10,<3",
+  "python-multipart>=0.0.20,<1",
+  "sqlalchemy>=2.0,<3",
+  "sqlalchemy-cloudflare-d1==0.4.1",
+  "treasurfy-api",
+]
+
+[tool.uv.sources]
+treasurfy-api = { path = ".." }
+
+[dependency-groups]
+dev = [
+  "workers-py",
+  "workers-runtime-sdk",
+]

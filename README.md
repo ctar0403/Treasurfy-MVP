@@ -216,6 +216,48 @@ The preview server proxies `/api` to the local API, so browsers use the same
 hostname for both. For an always-on demo, move the existing Docker Compose
 deployment to an always-on host and point a Cloudflare Tunnel there instead.
 
+## Cloudflare Workers + D1 demo
+
+The `apps/api/cloudflare` target runs the FastAPI API as a Python Worker, serves
+the compiled React app from Workers Static Assets, and stores its data in D1.
+Unlike the tunnel option above, this runs on Cloudflare and does not require this
+PC to remain online. Do not use real bank data: the current D1 integration uses
+an [early third-party SQLAlchemy adapter](https://pypi.org/project/sqlalchemy-cloudflare-d1/),
+and D1 does not support the interactive transactions used by a conventional
+SQLAlchemy session. Multi-record writes can therefore partially complete. This
+is for a private, synthetic-data walkthrough only—not production treasury
+operations. Cloudflare Access restricts who can reach the demo; it does not
+replace real sign-in or role enforcement inside this MVP.
+
+### One-time setup
+
+1. In the Cloudflare dashboard, create a D1 database named `treasurfy-demo`.
+   Copy its database ID into `apps/api/cloudflare/wrangler.jsonc`, replacing
+   `REPLACE_WITH_D1_DATABASE_ID`. The worker creates its schema and synthetic
+   demo rows on first request.
+2. In the GitHub repository settings, add the Cloudflare Account ID as the
+   Actions variable `CLOUDFLARE_ACCOUNT_ID`. Add a narrowly scoped Cloudflare
+   API token as the Actions secret `CLOUDFLARE_API_TOKEN` (Workers Scripts:Edit
+   and D1:Edit for the TreasurFy account). Never commit or paste the token into
+   the repository.
+3. Push the deployment files to GitHub. In the repository, open Actions, select
+   **Deploy TreasurFy to Cloudflare**, and choose **Run workflow**. The workflow
+   builds the frontend, bundles the Python Worker dependencies on Linux, and
+   deploys the Worker. This Linux build path avoids a current
+   [Pyodide/uv issue on Windows](https://github.com/cloudflare/workers-py/issues/270).
+
+### Add the private demo hostname
+
+After the workflow succeeds, add a custom domain such as `demo.treasurfy.com`
+to the `treasurfy-mvp` Worker in Cloudflare Workers & Pages. Then create a
+self-hosted Cloudflare Access application for that exact hostname and allow only
+the invited demo attendees' email addresses. Confirm that Access login appears
+before the app loads in a private browser window. The deployment config disables
+the `workers.dev` hostname so the custom domain is the only app URL.
+
+Later deployments use **Run workflow** again. No Cloudflare Tunnel or local
+proxy is involved in this hosting option.
+
 ## Forecasting and liquidity
 
 The forecast starts with the latest account balances, converts all values using

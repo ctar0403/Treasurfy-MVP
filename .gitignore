@@ -10,13 +10,16 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .venv/
+.venv-workers/
 venv/
+build/
 htmlcov/
 .coverage
 
 # JavaScript
 node_modules/
 dist/
+vendor/
 coverage/
 .vite/
 *.tsbuildinfo
@@ -31,6 +34,7 @@ test-results/
 uploads/
 artifacts/
 secrets/
+apps/api/uv.lock
 
 # Editors and operating systems
 .idea/

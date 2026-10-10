@@ -17,18 +17,25 @@ def create_app(
     settings: Settings | None = None,
     *,
     engine: Engine | None = None,
+    initialize_database: bool = True,
+    defer_database: bool = False,
 ) -> FastAPI:
     application_settings = settings or Settings.from_environment()
-    database = Database(
-        engine or create_database_engine(application_settings.database_url)
+    database = (
+        None
+        if defer_database
+        else Database(
+            engine or create_database_engine(application_settings.database_url)
+        )
     )
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        database.create_schema()
-        if application_settings.seed_demo:
-            with database.session_factory() as session:
-                seed_demo_data(session)
+        if initialize_database and database is not None:
+            database.create_schema()
+            if application_settings.seed_demo:
+                with database.session_factory() as session:
+                    seed_demo_data(session)
         yield
 
     application = FastAPI(
