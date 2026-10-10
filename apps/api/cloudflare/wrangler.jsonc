@@ -14,8 +14,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "treasurfy-demo",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+      "database_name": "treasurfy-mvp",
+      "database_id": "b7fe838e-39a2-4928-81e2-7db85a5fe2f9"
     }
   ],
   "observability": {
