@@ -59,7 +59,12 @@ class Membership(Base):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     role: Mapped[MembershipRole] = mapped_column(
-        SqlEnum(MembershipRole, native_enum=False), nullable=False
+        SqlEnum(
+            MembershipRole,
+            native_enum=False,
+            values_callable=lambda enum_type: [member.value for member in enum_type],
+        ),
+        nullable=False,
     )
 
 

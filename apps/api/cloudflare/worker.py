@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import traceback
+from js import console
 
 from fastapi import Request
 from fastapi.responses import Response
@@ -10,11 +12,10 @@ from workers import WorkerEntrypoint, asgi
 from treasurfy.config import Settings
 from treasurfy.database import Database
 from treasurfy.main import create_app
-from treasurfy.seed import seed_demo_data
 
 
 app = create_app(
-    Settings(database_url="cloudflare-d1://", seed_demo=True),
+    Settings(database_url="cloudflare-d1://", seed_demo=False),
     initialize_database=False,
     defer_database=True,
 )
@@ -31,9 +32,6 @@ async def initialize_database(binding) -> None:
         if _database_ready:
             return
         database = Database(create_engine_from_binding(binding))
-        database.create_schema()
-        with database.session_factory() as session:
-            seed_demo_data(session)
         app.state.database = database
         _database_ready = True
 
@@ -57,5 +55,12 @@ async def frontend(path: str, request: Request) -> Response:
 
 class Default(WorkerEntrypoint):
     async def fetch(self, request):
-        await initialize_database(self.env.DB)
-        return await asgi.fetch(app, request, self.env)
+        try:
+            await initialize_database(self.env.DB)
+            return await asgi.fetch(app, request, self.env)
+        except Exception as exc:
+            console.error(
+                f"[treasurfy] uncaught request error: {exc!r}"
+            )
+            console.error(traceback.format_exc())
+            raise

@@ -8,7 +8,7 @@ WORKDIR /app
 COPY pyproject.toml ./
 COPY treasurfy ./treasurfy
 
-RUN pip install --no-cache-dir . \
+RUN pip install --no-cache-dir ".[server]" \
     && useradd --create-home --uid 10001 treasurfy \
     && mkdir -p /data \
     && chown -R treasurfy:treasurfy /data

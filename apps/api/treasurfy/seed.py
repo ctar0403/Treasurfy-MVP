@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from treasurfy.models import (
     AuditEvent,
     BankAccount,
+    Base,
     Entity,
     ExpectedCashFlow,
     FxRate,
@@ -29,13 +30,19 @@ PREPARER_USER_ID = "user-demo-preparer"
 APPROVER_USER_ID = "user-demo-approver"
 
 
-def _seed_base_data(session: Session) -> None:
-    if session.get(Workspace, DEMO_WORKSPACE_ID) is not None:
-        return
+def _add_missing(session: Session, records: list[Base]) -> None:
+    """Insert seed records by dependency layer and make retries safe."""
+    for record in records:
+        if session.get(type(record), getattr(record, "id")) is None:
+            session.add(record)
+    session.commit()
 
+
+def _seed_base_data(session: Session) -> None:
     now = datetime.now(UTC).replace(microsecond=0)
 
-    session.add_all(
+    _add_missing(
+        session,
         [
             Workspace(
                 id=DEMO_WORKSPACE_ID,
@@ -62,6 +69,12 @@ def _seed_base_data(session: Session) -> None:
                 email="treasury.viewer@example.test",
                 display_name="Treasury Viewer",
             ),
+        ]
+    )
+
+    _add_missing(
+        session,
+        [
             Membership(
                 id="membership-demo-admin",
                 workspace_id=DEMO_WORKSPACE_ID,
@@ -80,32 +93,29 @@ def _seed_base_data(session: Session) -> None:
                 user_id=VIEWER_USER_ID,
                 role=MembershipRole.VIEWER,
             ),
-        ]
+            Entity(
+                id="entity-uk",
+                workspace_id=DEMO_WORKSPACE_ID,
+                name="Northstar UK Ltd",
+                country_code="GB",
+            ),
+            Entity(
+                id="entity-us",
+                workspace_id=DEMO_WORKSPACE_ID,
+                name="Northstar US Inc",
+                country_code="US",
+            ),
+            Entity(
+                id="entity-eu",
+                workspace_id=DEMO_WORKSPACE_ID,
+                name="Northstar Europe GmbH",
+                country_code="DE",
+            ),
+        ],
     )
 
-    entities = [
-        Entity(
-            id="entity-uk",
-            workspace_id=DEMO_WORKSPACE_ID,
-            name="Northstar UK Ltd",
-            country_code="GB",
-        ),
-        Entity(
-            id="entity-us",
-            workspace_id=DEMO_WORKSPACE_ID,
-            name="Northstar US Inc",
-            country_code="US",
-        ),
-        Entity(
-            id="entity-eu",
-            workspace_id=DEMO_WORKSPACE_ID,
-            name="Northstar Europe GmbH",
-            country_code="DE",
-        ),
-    ]
-    session.add_all(entities)
-
-    session.add_all(
+    _add_missing(
+        session,
         [
             BankAccount(
                 id="account-hsbc-gbp",
@@ -176,7 +186,8 @@ def _seed_base_data(session: Session) -> None:
         ]
     )
 
-    session.add_all(
+    _add_missing(
+        session,
         [
             FxRate(
                 id="fx-gbp-gbp",
@@ -208,28 +219,28 @@ def _seed_base_data(session: Session) -> None:
         ]
     )
 
-    session.add(
-        AuditEvent(
-            id="audit-demo-seeded",
-            workspace_id=DEMO_WORKSPACE_ID,
-            actor_user_id=DEMO_USER_ID,
-            action="workspace.demo_seeded",
-            target_type="workspace",
-            target_id=DEMO_WORKSPACE_ID,
-            detail='{"source":"synthetic"}',
-            created_at=now,
-        )
+    _add_missing(
+        session,
+        [
+            AuditEvent(
+                id="audit-demo-seeded",
+                workspace_id=DEMO_WORKSPACE_ID,
+                actor_user_id=DEMO_USER_ID,
+                action="workspace.demo_seeded",
+                target_type="workspace",
+                target_id=DEMO_WORKSPACE_ID,
+                detail='{"source":"synthetic"}',
+                created_at=now,
+            ),
+        ],
     )
-    session.commit()
 
 
 def _seed_forecast_data(session: Session) -> None:
-    if session.get(ExpectedCashFlow, "flow-uk-renewal") is not None:
-        return
-
     now = datetime.now(UTC).replace(microsecond=0)
     today = now.date()
-    session.add_all(
+    _add_missing(
+        session,
         [
             ExpectedCashFlow(
                 id="flow-uk-renewal",
@@ -329,6 +340,11 @@ def _seed_forecast_data(session: Session) -> None:
                 status="planned",
                 created_at=now,
             ),
+        ],
+    )
+    _add_missing(
+        session,
+        [
             LiquidityRule(
                 id="liquidity-rule-uk",
                 workspace_id=DEMO_WORKSPACE_ID,
@@ -350,51 +366,43 @@ def _seed_forecast_data(session: Session) -> None:
                 minimum_balance_base=Decimal("150000.00"),
                 created_at=now,
             ),
-        ]
+        ],
     )
-    session.commit()
 
 
 def _seed_payment_data(session: Session) -> None:
     now = datetime.now(UTC).replace(microsecond=0)
 
-    if session.get(User, PREPARER_USER_ID) is None:
-        session.add(
+    _add_missing(
+        session,
+        [
             User(
                 id=PREPARER_USER_ID,
                 email="treasury.preparer@example.test",
                 display_name="Priya Payment Maker",
-            )
-        )
-    if session.get(User, APPROVER_USER_ID) is None:
-        session.add(
+            ),
             User(
                 id=APPROVER_USER_ID,
                 email="treasury.approver@example.test",
                 display_name="Alex Payment Checker",
-            )
-        )
-    if session.get(Membership, "membership-demo-preparer") is None:
-        session.add(
+            ),
+        ],
+    )
+    _add_missing(
+        session,
+        [
             Membership(
                 id="membership-demo-preparer",
                 workspace_id=DEMO_WORKSPACE_ID,
                 user_id=PREPARER_USER_ID,
                 role=MembershipRole.PREPARER,
-            )
-        )
-    if session.get(Membership, "membership-demo-approver") is None:
-        session.add(
+            ),
             Membership(
                 id="membership-demo-approver",
                 workspace_id=DEMO_WORKSPACE_ID,
                 user_id=APPROVER_USER_ID,
                 role=MembershipRole.APPROVER,
-            )
-        )
-
-    if session.get(PaymentProfile, "payment-profile-pain001-demo") is None:
-        session.add(
+            ),
             PaymentProfile(
                 id="payment-profile-pain001-demo",
                 workspace_id=DEMO_WORKSPACE_ID,
@@ -404,64 +412,67 @@ def _seed_payment_data(session: Session) -> None:
                 allowed_currencies="GBP,USD,EUR",
                 maximum_amount=Decimal("1000000.00"),
                 created_at=now,
-            )
-        )
+            ),
+        ],
+    )
 
-    if session.get(Payment, "payment-demo-cloud") is None:
-        payment = Payment(
-            id="payment-demo-cloud",
-            workspace_id=DEMO_WORKSPACE_ID,
-            entity_id="entity-eu",
-            source_account_id="account-deutsche-eur",
-            payment_profile_id="payment-profile-pain001-demo",
-            profile_version="1.0.0",
-            beneficiary_name="Atlas Cloud Services GmbH",
-            beneficiary_account="DE89370400440532013000",
-            beneficiary_country_code="DE",
-            amount=Decimal("48000.00"),
-            currency="EUR",
-            requested_execution_date=now.date() + timedelta(days=4),
-            reference="INV-2026-1042",
-            status="pending_approval",
-            validation_status="passed",
-            validation_detail="[]",
-            created_by_user_id=PREPARER_USER_ID,
-            submitted_by_user_id=PREPARER_USER_ID,
-            decided_by_user_id=None,
-            created_at=now,
-            submitted_at=now,
-            decided_at=None,
-        )
-        session.add(payment)
-        session.add_all(
-            [
-                AuditEvent(
-                    id="audit-payment-demo-created",
-                    workspace_id=DEMO_WORKSPACE_ID,
-                    actor_user_id=PREPARER_USER_ID,
-                    action="payment.created",
-                    target_type="payment",
-                    target_id=payment.id,
-                    detail='{"profile_version":"1.0.0","status":"draft","validation_status":"passed"}',
-                    created_at=now,
-                ),
-                AuditEvent(
-                    id="audit-payment-demo-submitted",
-                    workspace_id=DEMO_WORKSPACE_ID,
-                    actor_user_id=PREPARER_USER_ID,
-                    action="payment.submitted",
-                    target_type="payment",
-                    target_id=payment.id,
-                    detail='{"status":"pending_approval"}',
-                    created_at=now,
-                ),
-            ]
-        )
-    session.commit()
+    _add_missing(
+        session,
+        [
+            Payment(
+                id="payment-demo-cloud",
+                workspace_id=DEMO_WORKSPACE_ID,
+                entity_id="entity-eu",
+                source_account_id="account-deutsche-eur",
+                payment_profile_id="payment-profile-pain001-demo",
+                profile_version="1.0.0",
+                beneficiary_name="Atlas Cloud Services GmbH",
+                beneficiary_account="DE89370400440532013000",
+                beneficiary_country_code="DE",
+                amount=Decimal("48000.00"),
+                currency="EUR",
+                requested_execution_date=now.date() + timedelta(days=4),
+                reference="INV-2026-1042",
+                status="pending_approval",
+                validation_status="passed",
+                validation_detail="[]",
+                created_by_user_id=PREPARER_USER_ID,
+                submitted_by_user_id=PREPARER_USER_ID,
+                decided_by_user_id=None,
+                created_at=now,
+                submitted_at=now,
+                decided_at=None,
+            ),
+        ],
+    )
+    _add_missing(
+        session,
+        [
+            AuditEvent(
+                id="audit-payment-demo-created",
+                workspace_id=DEMO_WORKSPACE_ID,
+                actor_user_id=PREPARER_USER_ID,
+                action="payment.created",
+                target_type="payment",
+                target_id="payment-demo-cloud",
+                detail='{"profile_version":"1.0.0","status":"draft","validation_status":"passed"}',
+                created_at=now,
+            ),
+            AuditEvent(
+                id="audit-payment-demo-submitted",
+                workspace_id=DEMO_WORKSPACE_ID,
+                actor_user_id=PREPARER_USER_ID,
+                action="payment.submitted",
+                target_type="payment",
+                target_id="payment-demo-cloud",
+                detail='{"status":"pending_approval"}',
+                created_at=now,
+            ),
+        ],
+    )
 
 
 def seed_demo_data(session: Session) -> None:
-    if session.get(Workspace, DEMO_WORKSPACE_ID) is None:
-        _seed_base_data(session)
+    _seed_base_data(session)
     _seed_forecast_data(session)
     _seed_payment_data(session)

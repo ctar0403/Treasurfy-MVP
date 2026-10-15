@@ -248,12 +248,13 @@ replace real sign-in or role enforcement inside this MVP.
 
 ### Add the private demo hostname
 
-After the workflow succeeds, add a custom domain such as `demo.treasurfy.com`
-to the `treasurfy-mvp` Worker in Cloudflare Workers & Pages. Then create a
-self-hosted Cloudflare Access application for that exact hostname and allow only
-the invited demo attendees' email addresses. Confirm that Access login appears
-before the app loads in a private browser window. The deployment config disables
-the `workers.dev` hostname so the custom domain is the only app URL.
+With `workers_dev` enabled, the Worker is reachable at
+`https://treasurfy-mvp.olli-b27.workers.dev` in Olli's Cloudflare account. The
+`workers.dev` hostname is public unless protected with Cloudflare Access. For a
+private demo, configure an Access application and allow only invited attendee
+email addresses, then verify the login gate in a private browser window. A
+custom hostname such as `demo.treasurfy.com` can also be attached to the Worker;
+it does not replace the root `treasurfy.com` website.
 
 Later deployments use **Run workflow** again. No Cloudflare Tunnel or local
 proxy is involved in this hosting option.
