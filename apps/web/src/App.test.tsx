@@ -172,7 +172,7 @@ const dailyBrief: DailyBrief = {
   generated_at: "2026-10-04T08:00:00Z",
   base_currency: "GBP",
   headline: "1 liquidity risk and 1 payment approval need attention",
-  summary: "Available cash and forecasts are derived from current treasury inputs.",
+  summary: "Available cash and forecasts are derived from current TreasurFy inputs.",
   metrics: [
     {
       key: "total_cash",
@@ -230,6 +230,7 @@ function jsonResponse(payload: unknown): Response {
 describe("TreasurFy dashboard", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
+    window.localStorage.clear();
   });
 
   afterEach(() => {
@@ -259,6 +260,32 @@ describe("TreasurFy dashboard", () => {
     expect(screen.getByText("Today's actions")).toBeInTheDocument();
     expect(screen.getByText("Atlas Cloud Services GmbH")).toBeInTheDocument();
     expect(screen.getByText(/No files imported yet/)).toBeInTheDocument();
+  });
+
+  it("toggles themes, switches the logo, and remembers the preference", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse(cashPosition))
+      .mockResolvedValueOnce(jsonResponse([]))
+      .mockResolvedValueOnce(jsonResponse(forecast))
+      .mockResolvedValueOnce(jsonResponse([paymentProfile]))
+      .mockResolvedValueOnce(jsonResponse([pendingPayment]))
+      .mockResolvedValueOnce(jsonResponse(dailyBrief));
+
+    const { container } = render(<App />);
+    await screen.findByText("TreasurFy overview");
+
+    const shell = container.querySelector(".app-shell");
+    const logo = container.querySelector<HTMLImageElement>(".brand-logo");
+    expect(shell).toHaveAttribute("data-theme", "light");
+    expect(logo?.getAttribute("src")).toBe("/treasurfy-logo-dark.png");
+
+    fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
+    expect(shell).toHaveAttribute("data-theme", "dark");
+    expect(logo?.getAttribute("src")).toBe("/treasurfy-logo-light.png");
+    expect(window.localStorage.getItem("treasurfy-theme")).toBe("dark");
+
+    fireEvent.click(screen.getByRole("button", { name: "Switch to light theme" }));
+    expect(shell).toHaveAttribute("data-theme", "light");
   });
 
   it("uploads a CSV and refreshes the dashboard", async () => {

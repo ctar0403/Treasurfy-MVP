@@ -1,6 +1,6 @@
 # TreasurFy MVP
 
-TreasurFy is a treasury workspace for growth-stage companies that manage
+TreasurFy is a TreasurFy workspace for growth-stage companies that manage
 multiple entities, banks, accounts, and currencies.
 
 The MVP answers five practical questions:
@@ -18,7 +18,7 @@ Bank/ERP files
     -> reusable import profiles
     -> normalized accounts, balances, transactions, and expected cash flows
     -> cash position, forecast, and liquidity calculations
-    -> dashboard and grounded daily treasury brief
+    -> dashboard and grounded daily TreasurFy brief
 
 Payment draft
     -> canonical payment model
@@ -69,7 +69,7 @@ illustrative ISO 20022 `pain.001` file.
 
 ```text
 apps/api/   FastAPI application and tests
-apps/web/   React and TypeScript treasury dashboard
+apps/web/   React and TypeScript TreasurFy dashboard
 compose.yaml   Containerized local deployment
 ```
 
@@ -95,7 +95,7 @@ All six MVP delivery steps are implemented across `apps/api` and `apps/web`:
 - Separate payment maker/checker identities and approval enforcement
 - Payment audit history and repeatable illustrative ISO 20022 XML export
 - Responsive payment preparation and approval workspace
-- Evidence-linked daily treasury brief with prioritized actions
+- Evidence-linked daily TreasurFy brief with prioritized actions
 - Immutable brief runs that are reused while their source inputs remain unchanged
 - API safety headers, response request IDs, container health checks, and non-root images
 
@@ -225,7 +225,7 @@ PC to remain online. Do not use real bank data: the current D1 integration uses
 an [early third-party SQLAlchemy adapter](https://pypi.org/project/sqlalchemy-cloudflare-d1/),
 and D1 does not support the interactive transactions used by a conventional
 SQLAlchemy session. Multi-record writes can therefore partially complete. This
-is for a private, synthetic-data walkthrough only—not production treasury
+is for a private, synthetic-data walkthrough only—not production TreasurFy
 operations. Cloudflare Access restricts who can reach the demo; it does not
 replace real sign-in or role enforcement inside this MVP.
 
@@ -306,7 +306,7 @@ content and SHA-256 digest. The generated `pain.001.001.03` document is an
 illustrative interoperability artifact: it is not certified by a bank and is
 never transmitted.
 
-## Daily treasury brief
+## Daily TreasurFy brief
 
 The brief is calculated from the same cash position, forecast, liquidity rules,
 and payment states shown elsewhere in the dashboard. Every exception links back

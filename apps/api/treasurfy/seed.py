@@ -56,8 +56,8 @@ def _seed_base_data(session: Session) -> None:
             ),
             User(
                 id=DEMO_USER_ID,
-                email="treasury.admin@example.test",
-                display_name="Treasury Admin",
+                email="TreasurFy.admin@example.test",
+                display_name="TreasurFy Admin",
             ),
             User(
                 id=OUTSIDER_USER_ID,
@@ -66,8 +66,8 @@ def _seed_base_data(session: Session) -> None:
             ),
             User(
                 id=VIEWER_USER_ID,
-                email="treasury.viewer@example.test",
-                display_name="Treasury Viewer",
+                email="TreasurFy.viewer@example.test",
+                display_name="TreasurFy Viewer",
             ),
         ]
     )
@@ -378,12 +378,12 @@ def _seed_payment_data(session: Session) -> None:
         [
             User(
                 id=PREPARER_USER_ID,
-                email="treasury.preparer@example.test",
+                email="TreasurFy.preparer@example.test",
                 display_name="Priya Payment Maker",
             ),
             User(
                 id=APPROVER_USER_ID,
-                email="treasury.approver@example.test",
+                email="TreasurFy.approver@example.test",
                 display_name="Alex Payment Checker",
             ),
         ],

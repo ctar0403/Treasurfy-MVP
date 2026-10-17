@@ -32,6 +32,9 @@ function initials(name: string): string {
 }
 
 export default function App() {
+  const [theme, setTheme] = useState<"light" | "dark">(() =>
+    window.localStorage.getItem("treasurfy-theme") === "dark" ? "dark" : "light",
+  );
   const [cash, setCash] = useState<CashPosition | null>(null);
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [dailyBrief, setDailyBrief] = useState<DailyBrief | null>(null);
@@ -44,6 +47,10 @@ export default function App() {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<ImportRun | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    window.localStorage.setItem("treasurfy-theme", theme);
+  }, [theme]);
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -66,7 +73,7 @@ export default function App() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to load the treasury workspace.",
+          : "Unable to load the TreasurFy workspace.",
       );
     } finally {
       setLoading(false);
@@ -116,13 +123,15 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-theme={theme}>
       <header className="topbar">
         <a className="brand" href="#top" aria-label="TreasurFy dashboard">
-          <span className="brand-mark" aria-hidden="true">
-            T
-          </span>
-          <span>TreasurFy</span>
+          <img
+            className="brand-logo"
+            src={theme === "dark" ? "/treasurfy-logo-light.png" : "/treasurfy-logo-dark.png"}
+            alt=""
+            aria-hidden="true"
+          />
         </a>
         <nav className="topbar-nav" aria-label="Dashboard sections">
           <a href="#brief">Brief</a>
@@ -131,10 +140,20 @@ export default function App() {
           <a href="#accounts">Accounts</a>
         </nav>
         <div className="topbar-actions">
+          <button
+            className="theme-toggle"
+            type="button"
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+            aria-pressed={theme === "dark"}
+            onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
+          >
+            <span aria-hidden="true">{theme === "dark" ? "☀" : "◐"}</span>
+            {theme === "dark" ? "Light" : "Dark"}
+          </button>
           <span className="environment-pill">
             <span className="pulse-dot" aria-hidden="true" /> Demo workspace
           </span>
-          <span className="avatar" aria-label="Treasury Admin">
+          <span className="avatar" aria-label="TreasurFy Admin">
             TA
           </span>
         </div>
@@ -144,7 +163,7 @@ export default function App() {
         <section className="page-heading">
           <div>
             <p className="eyebrow">Cash visibility</p>
-            <h1>Treasury overview</h1>
+            <h1>TreasurFy overview</h1>
             <p className="lede">
               One view of cash across every entity, bank, and currency.
             </p>
@@ -163,7 +182,7 @@ export default function App() {
 
         {loading && !cash ? (
           <div className="loading-card" role="status">
-            Loading treasury data…
+            Loading TreasurFy data…
           </div>
         ) : cash ? (
           <>

@@ -296,7 +296,7 @@ def create_daily_brief(
         highlights.append(
             DailyBriefHighlight(
                 severity="info",
-                title="No immediate treasury exceptions",
+                title="No immediate TreasurFy exceptions",
                 detail="No liquidity breach, stale balance, or approval queue was detected.",
                 evidence=[f"forecast:{forecast.forecast_run_id}"],
             )
